@@ -1,0 +1,262 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Planning-Workflow-v3" id="planning-workflow-v3">
+    <mxGraphModel dx="1201" dy="730" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="2600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c11" parent="1" vertex="1" value="" style="rounded=1;arcSize=3;fillColor=none;dashed=1;dashPattern=8 4;strokeColor=#999999;">
+          <mxGeometry x="215" y="610" width="760" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="c12" parent="1" vertex="1" value="" style="rounded=1;arcSize=3;fillColor=none;dashed=1;dashPattern=8 4;strokeColor=#999999;">
+          <mxGeometry x="25" y="825" width="385" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" parent="1" vertex="1" value="STAGE 1 — parallel · shared Retriever contract (status + items + diagnostics)" style="text;html=1;whiteSpace=wrap;align=center;verticalAlign=top;fontSize=9;fontColor=#666666;fontStyle=1;spacing=2;">
+          <mxGeometry x="300" y="758" width="330" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="c14" parent="1" vertex="1" value="STAGE 2 — needs code hits" style="text;html=1;whiteSpace=wrap;align=center;verticalAlign=top;fontSize=9;fontColor=#666666;fontStyle=1;spacing=2;">
+          <mxGeometry x="150" y="962" width="150" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="start" parent="1" vertex="1" value="&lt;b&gt;START — cog plan&lt;/b&gt;&lt;br&gt;cog plan owner/repo#123 (or 123 in a known clone) → run_id = thread_id" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;spacing=4;">
+          <mxGeometry x="410" y="20" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="preflight" parent="1" vertex="1" value="&lt;b&gt;1. preflight&lt;/b&gt;&lt;br&gt;repo · auth · API budget (per bucket) · tiers and capabilities · egress policy · issue exists? · is it a PR? · fetch managed clone → base_sha" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="370" y="100" width="260" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="fetch" parent="1" vertex="1" value="&lt;b&gt;2. fetch_issue&lt;/b&gt;&lt;br&gt;one GraphQL query: body + comments + timeline + labels + sub-issues + linked PRs; attachments → raw blob (cache key: repo/issue/updated_at; API calls budgeted)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="370" y="190" width="260" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="normalize" parent="1" vertex="1" value="&lt;b&gt;3. normalize_issue&lt;/b&gt;&lt;br&gt;raw → NormalizedIssue schema (pure function)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="370" y="290" width="260" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="extract" parent="1" vertex="1" value="&lt;b&gt;4. extract_references&lt;/b&gt;&lt;br&gt;registry of pure extractors, one per type: issue/PR refs · URLs · file paths · stack frames · identifiers · error strings · versions · labels→area" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="350" y="380" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="validate" parent="1" vertex="1" value="&lt;b&gt;5. validate_references&lt;/b&gt;&lt;br&gt;check each ref against reality: exists / renamed / not_found" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="370" y="500" width="260" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="code" parent="1" vertex="1" value="&lt;b&gt;6. code_retriever&lt;/b&gt;&lt;br&gt;tiers: paths/frames → symbols → lexical (FTS5/rg) → neighbors (tests, imports, co-change, exemplars) → embeddings (opt.) + repo map" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="230" y="640" width="160" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="linked" parent="1" vertex="1" value="&lt;b&gt;7. linked_prs&lt;/b&gt;&lt;br&gt;closing refs · timeline cross-refs · #mentions → batched GraphQL: PR metadata + diff stats" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="420" y="640" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="relissues" parent="1" vertex="1" value="&lt;b&gt;8. related_issues&lt;/b&gt;&lt;br&gt;explicit links + FTS5 over local issue/PR mirror (no search API)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="610" y="640" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="conv" parent="1" vertex="1" value="&lt;b&gt;9. repo_conventions&lt;/b&gt;&lt;br&gt;AGENTS.md · CONTRIBUTING · CODEOWNERS · lint/format configs · test/lint commands (rules, not taste)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="800" y="640" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="relprs" parent="1" vertex="1" value="&lt;b&gt;10. related_prs&lt;/b&gt;&lt;br&gt;git log on candidate files → map commits to PRs (squash &amp;quot;(#N)&amp;quot; / commits→pulls API)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="40" y="860" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="docs" parent="1" vertex="1" value="&lt;b&gt;11. docs_retriever&lt;/b&gt;&lt;br&gt;queries: validated identifiers + vocab harvested from code hits (+ optional LLMClient query_gen, small tier: tagged queries only, never paths) → hybrid search" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#d79b00;dashed=1;dashPattern=6 3;strokeWidth=2;spacing=4;">
+          <mxGeometry x="230" y="860" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pack" parent="1" vertex="1" value="&lt;b&gt;12. context_packer (join)&lt;/b&gt;&lt;br&gt;merge RetrieverResults · deny-list + secret redaction · dedupe · rank · fit token budget · attach provenance + confidence tier + token cost · build manifest of what exists but was not included · record statuses/warnings" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="40" y="1020" width="920" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="suff" parent="1" vertex="1" value="&lt;b&gt;13. sufficient?&lt;/b&gt;&lt;br&gt;deterministic checks first, optional LLM verdict" style="rhombus;whiteSpace=wrap;html=1;fontSize=9;fillColor=#fff2cc;strokeColor=#d6b656;spacing=4;">
+          <mxGeometry x="390" y="1150" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="askhuman" parent="1" vertex="1" value="&lt;b&gt;14. ask_human (HITL)&lt;/b&gt;&lt;br&gt;interrupt-only; pause: clarify → cog resume &amp;lt;run_id&amp;gt;; answers appended to context" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;spacing=4;">
+          <mxGeometry x="720" y="1165" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="planner" parent="1" vertex="1" value="&lt;b&gt;15. planner (LLM)&lt;/b&gt;&lt;br&gt;LLMClient role planner (tier from config) · structured output → Plan: tasks(depends_on, files, acceptance cmds, context refs) + assumptions + open_questions + context_gaps. Bounded read-only tools. Match repo conventions. NO batches from LLM." style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;spacing=4;">
+          <mxGeometry x="370" y="1300" width="260" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="gapchk" parent="1" vertex="1" value="&lt;b&gt;16a. context_gaps?&lt;/b&gt;&lt;br&gt;non-empty and rounds &amp;lt; 2" style="rhombus;whiteSpace=wrap;html=1;fontSize=9;fillColor=#fff2cc;strokeColor=#d6b656;spacing=4;">
+          <mxGeometry x="390" y="1440" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="gapres" parent="1" vertex="1" value="&lt;b&gt;16b. gap_resolver&lt;/b&gt;&lt;br&gt;file/symbol/search/doc → retrievers · human_question → carried to HITL as open question" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="720" y="1450" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="derive" parent="1" vertex="1" value="&lt;b&gt;17. derive_batches&lt;/b&gt;&lt;br&gt;topological sort on depends_on → batches · tolerant: emits graph_errors instead of raising · bump write-set conflicts to next batch" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="370" y="1580" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="validator" parent="1" vertex="1" value="&lt;b&gt;18. plan_validator&lt;/b&gt;&lt;br&gt;schema · ids/deps/cycles · paths exist-or-new · symbols indexed · test cmds resolvable · each task cites ≥1 valid context item · disjoint write-sets · deny-list paths" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="370" y="1690" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="valid" parent="1" vertex="1" value="&lt;b&gt;valid?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;spacing=4;">
+          <mxGeometry x="390" y="1820" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="review" parent="1" vertex="1" value="&lt;b&gt;19. llm_plan_review (optional)&lt;/b&gt;&lt;br&gt;LLMClient role reviewer (different model) · semantic only: requirement→task coverage, risk, missing tests · advisory findings" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#d79b00;dashed=1;dashPattern=6 3;strokeWidth=2;spacing=4;">
+          <mxGeometry x="370" y="1960" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="render" parent="1" vertex="1" value="&lt;b&gt;20. render_plan&lt;/b&gt;&lt;br&gt;Plan JSON → Jinja2 → HTML view (summary, traceability, batches, validation report, gaps, assumptions)&lt;br&gt;auto-escaped + CSP; derived file, never parsed back" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="370" y="2070" width="260" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="hitl" parent="1" vertex="1" value="&lt;b&gt;21. hitl_review&lt;/b&gt;&lt;br&gt;interrupt-only: approve / edit / reject+feedback&lt;br&gt;cog resume &amp;lt;run_id&amp;gt;" style="rhombus;whiteSpace=wrap;html=1;fontSize=10;fillColor=#dae8fc;strokeColor=#6c8ebf;spacing=4;">
+          <mxGeometry x="360" y="2180" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="persist" parent="1" vertex="1" value="&lt;b&gt;22. persist_plan&lt;/b&gt;&lt;br&gt;immutable versioned plan.json + sha256 + base_sha + approval.json + context snapshot → data directory (plans/…/vN) + run record (SQLite). No write to the target repo; cog plan export on request" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;spacing=4;">
+          <mxGeometry x="370" y="2340" width="260" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="end" parent="1" vertex="1" value="&lt;b&gt;END → Implementation&lt;/b&gt;&lt;br&gt;(designed later)" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;spacing=4;">
+          <mxGeometry x="410" y="2490" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" parent="1" edge="1" source="start" target="preflight" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" parent="1" edge="1" source="preflight" target="fetch" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c17" parent="1" edge="1" source="fetch" target="normalize" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c18" parent="1" edge="1" source="normalize" target="extract" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c19" parent="1" edge="1" source="extract" target="validate" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" parent="1" edge="1" source="validate" target="code" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" parent="1" edge="1" source="validate" target="linked" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" parent="1" edge="1" source="validate" target="relissues" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" parent="1" edge="1" source="validate" target="conv" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c24" parent="1" edge="1" source="code" target="relprs" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c25" parent="1" edge="1" source="code" target="docs" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c26" parent="1" edge="1" source="linked" target="pack" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c27" parent="1" edge="1" source="relissues" target="pack" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.7065217391304348;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c28" parent="1" edge="1" source="conv" target="pack" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.9130434782608695;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c29" parent="1" edge="1" source="relprs" target="pack" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.08695652173913043;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c30" parent="1" edge="1" source="docs" target="pack" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.29347826086956524;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c31" parent="1" edge="1" source="pack" target="suff" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c32" parent="1" edge="1" source="suff" target="askhuman" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c33" parent="1" edge="1" source="suff" target="planner" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c34" parent="1" edge="1" source="askhuman" target="planner" value="answers" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c35" parent="1" edge="1" source="planner" target="gapchk" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c36" parent="1" edge="1" source="gapchk" target="gapres" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c37" parent="1" edge="1" source="gapres" target="planner" value="fetched context" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c38" parent="1" edge="1" source="gapchk" target="derive" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c39" parent="1" edge="1" source="derive" target="validator" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c40" parent="1" edge="1" source="validator" target="valid" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c41" parent="1" edge="1" source="valid" target="planner" value="No: errors fed back (retry ≤ 3, then HITL)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="330" y="1870" />
+              <mxPoint x="330" y="1350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c42" parent="1" edge="1" source="valid" target="review" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c43" parent="1" edge="1" source="review" target="render" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c44" parent="1" edge="1" source="render" target="hitl" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c45" parent="1" edge="1" source="hitl" target="persist" value="Approve" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c46" parent="1" edge="1" source="hitl" target="planner" value="Reject + feedback" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="2240" />
+              <mxPoint x="270" y="1325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c47" parent="1" edge="1" source="hitl" target="derive" value="Edit (re-derive, re-validate)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="2240" />
+              <mxPoint x="1000" y="1615" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c48" parent="1" edge="1" source="persist" target="end" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c49" parent="1" vertex="1" value="LEGEND" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=11;fontColor=#000000;fontStyle=1;spacing=2;">
+          <mxGeometry x="1060" y="20" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="c50" parent="1" vertex="1" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;">
+          <mxGeometry x="1060" y="50" width="40" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c51" parent="1" vertex="1" value="Deterministic node" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=10;fontColor=#000000;spacing=2;">
+          <mxGeometry x="1110" y="50" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c52" parent="1" vertex="1" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#d79b00;dashed=1;dashPattern=6 3;strokeWidth=2;">
+          <mxGeometry x="1060" y="82" width="40" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c53" parent="1" vertex="1" value="Deterministic + optional LLM (bounded, validated)" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=10;fontColor=#000000;spacing=2;">
+          <mxGeometry x="1110" y="82" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c54" parent="1" vertex="1" value="" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;">
+          <mxGeometry x="1060" y="114" width="40" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c55" parent="1" vertex="1" value="LLM node" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=10;fontColor=#000000;spacing=2;">
+          <mxGeometry x="1110" y="114" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c56" parent="1" vertex="1" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="1060" y="146" width="40" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c57" parent="1" vertex="1" value="Human-in-the-loop" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=10;fontColor=#000000;spacing=2;">
+          <mxGeometry x="1110" y="146" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c58" parent="1" vertex="1" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;">
+          <mxGeometry x="1060" y="178" width="40" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c59" parent="1" vertex="1" value="Decision / conditional edge" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=10;fontColor=#000000;spacing=2;">
+          <mxGeometry x="1110" y="178" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c60" parent="1" vertex="1" value="" style="rounded=1;fillColor=#f5f5f5;strokeColor=#666666;">
+          <mxGeometry x="1060" y="210" width="40" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c61" parent="1" vertex="1" value="Start / end / persisted artifact" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=10;fontColor=#000000;spacing=2;">
+          <mxGeometry x="1110" y="210" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="c62" parent="1" vertex="1" value="&lt;b&gt;CROSS-CUTTING (all nodes)&lt;/b&gt;&lt;br&gt;&lt;br&gt;• &lt;b&gt;State&lt;/b&gt;: TypedDict of Pydantic models; ids/hashes for big payloads; reducers on parallel keys&lt;br&gt;• &lt;b&gt;Node contract&lt;/b&gt;: decorator enforces typed in/out, status not exceptions, timing + usage logging&lt;br&gt;• &lt;b&gt;Checkpointer&lt;/b&gt;: async SQLite (thread_id = run_id) enables interrupt/resume + replay&lt;br&gt;• &lt;b&gt;Blobs + events&lt;/b&gt;: content-addressed payloads; event store per node/LLM/tool/GitHub call; cost NULL when unknown&lt;br&gt;• &lt;b&gt;Caching&lt;/b&gt;: fetch/retrieval keyed on commit SHA + issue updated_at; LLM calls by input hash&lt;br&gt;• &lt;b&gt;Failure policy&lt;/b&gt;: retrievers return status (ok/empty/skipped/error), never crash the run; warnings flow to HITL&lt;br&gt;• &lt;b&gt;Budgets&lt;/b&gt;: per-node timeouts, token + $ caps, tool-call caps; breach = pause for human&lt;br&gt;• &lt;b&gt;Policy&lt;/b&gt;: path deny-list at fetch (6, 9, 11) and in the validator (18); secret redaction (12, tool results)&lt;br&gt;• &lt;b&gt;Principle 9&lt;/b&gt;: repo conventions outrank harness preferences&lt;br&gt;• &lt;b&gt;Untrusted input&lt;/b&gt;: issue/comments/docs are DATA, not instructions; planner tools are read-only, no network&lt;br&gt;• &lt;b&gt;Providers&lt;/b&gt;: LLMClient only (Fireworks/OpenRouter first); no agent CLI needed&lt;br&gt;• &lt;b&gt;Observability&lt;/b&gt;: eval = context recall vs. files in historical merged PRs (cog eval run)" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=10;fillColor=#ffffff;strokeColor=#999999;spacing=8;">
+          <mxGeometry x="1060" y="270" width="340" height="450" as="geometry" />
+        </mxCell>
+        <mxCell id="c63" parent="1" vertex="1" value="&lt;b&gt;LOOP LIMITS&lt;/b&gt;&lt;br&gt;&lt;br&gt;• clarify (14): 1 round&lt;br&gt;• gap resolution (16): ≤ 2 rounds&lt;br&gt;• validator repair (18→15): ≤ 3 retries, then escalate to HITL with errors shown&lt;br&gt;• LLM review (19): 1 pass, blocks only on critical&lt;br&gt;• HITL reject (21→15): unbounded, human-driven&lt;br&gt;• schema repair inside LLMClient: small fixed number of attempts&lt;br&gt;• budget breach (any node): pause for human&lt;br&gt;&lt;br&gt;&lt;b&gt;PAUSE REASONS (cog resume)&lt;/b&gt;&lt;br&gt;clarify (14) · review (21) · validation_failed (18) · budget" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=10;fillColor=#ffffff;strokeColor=#999999;spacing=8;">
+          <mxGeometry x="1060" y="740" width="340" height="230" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
