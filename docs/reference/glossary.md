@@ -16,13 +16,13 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 **RAKE / YAKE.** Statistical algorithms that pull "keywords" out of a single piece of text without a corpus or model. They tend to perform poorly on short, noisy, code-heavy text, which is why this design avoids them.
 
-**Embedding.** A list of numbers (a vector) produced by a model that represents the *meaning* of a piece of text, so that texts with similar meaning have vectors that are close together. Enables "semantic search": finding relevant text even when it uses different words. Costs: an embedding model, chunking decisions, storage, and keeping vectors fresh when files change.
+**Embedding.** A list of numbers (a vector) produced by a model that represents the _meaning_ of a piece of text, so that texts with similar meaning have vectors that are close together. Enables "semantic search": finding relevant text even when it uses different words. Costs: an embedding model, chunking decisions, storage, and keeping vectors fresh when files change.
 
 **Semantic search.** Retrieval based on embedding similarity rather than literal word overlap.
 
 **Cosine similarity.** A measure of how closely two vectors point in the same direction (1 = same direction, 0 = unrelated). The standard way to compare embeddings.
 
-**Brute-force vector search.** Compute cosine similarity between the query vector and *every* stored vector (typically with numpy), then take the top results. Perfectly fine up to tens of thousands of chunks; no vector database required.
+**Brute-force vector search.** Compute cosine similarity between the query vector and _every_ stored vector (typically with numpy), then take the top results. Perfectly fine up to tens of thousands of chunks; no vector database required.
 
 **Vector database.** A server or library that stores embeddings and finds nearest neighbors quickly using specialized indexes (approximate nearest neighbor search). Needed at larger scale; **not** needed to combine BM25 with embeddings at this project's likely size. Examples: `sqlite-vec` (SQLite extension), LanceDB (embedded), or hosted services.
 
@@ -40,7 +40,7 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 **Chunking.** Splitting files or documents into pieces (by function/class for code, by heading/section for docs) before indexing, so search returns focused snippets rather than whole files.
 
-**Vocabulary mismatch / vocabulary bridging.** The problem that issue authors and codebases describe the same thing in different words. *Bridging* means using words from one side (e.g., function names found in code) to query the other (docs). Related to *pseudo-relevance feedback*: using top results from a first search to build a better second query.
+**Vocabulary mismatch / vocabulary bridging.** The problem that issue authors and codebases describe the same thing in different words. _Bridging_ means using words from one side (e.g., function names found in code) to query the other (docs). Related to _pseudo-relevance feedback_: using top results from a first search to build a better second query.
 
 **Context recall.** The fraction of the "right" context that your retrieval actually surfaced, e.g., the share of files in the real merged PR that appeared in your packed context. The central metric for tuning retrievers (Section 9).
 
@@ -90,11 +90,11 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 ## LangGraph and orchestration
 
-**Workflow vs. agent.** A *workflow* follows a path defined in code, with LLM calls at specific nodes. An *agent* lets the LLM decide the next step in a loop. This design is a workflow with a small, bounded amount of agent-like behavior (the planner's read-only tools).
+**Workflow vs. agent.** A _workflow_ follows a path defined in code, with LLM calls at specific nodes. An _agent_ lets the LLM decide the next step in a loop. This design is a workflow with a small, bounded amount of agent-like behavior (the planner's read-only tools).
 
 **Agentic search.** Letting an LLM drive repeated search and file-reading calls (grep, open file, follow references) to find relevant code, instead of a fixed retrieval pipeline. More flexible on vague issues; costlier and harder to reproduce. The main alternative to this design's deterministic preload.
 
-**Graph / node / edge.** In LangGraph, a workflow is a graph. A *node* is a function that reads and updates state; an *edge* connects nodes; a *conditional edge* chooses the next node via a routing function.
+**Graph / node / edge.** In LangGraph, a workflow is a graph. A _node_ is a function that reads and updates state; an _edge_ connects nodes; a _conditional edge_ chooses the next node via a routing function.
 
 **State.** The shared data structure passed through the graph (here, Pydantic models). Nodes return partial updates to it.
 

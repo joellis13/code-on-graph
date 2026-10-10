@@ -11,13 +11,13 @@ The tool is personal now and should be able to grow into something shared if it 
 
 Build interfaces with local implementations now. Do not build multi-user features.
 
-| Seam | Local implementation | Possible scale implementation |
-|---|---|---|
-| `PlanStore`, `ArtifactStore`, `RunStore` | Files + SQLite | Object storage + Postgres |
-| `VCSHost` auth | Token / `gh` | GitHub App |
-| `ExecutionEnvironment` | Local process, WSL2 | Containers, remote workers |
-| Interfaces | CLI | Web review UI, MCP server, webhook trigger |
-| Config layers | Defaults to flags | Organization policy layer |
+| Seam                                     | Local implementation | Possible scale implementation              |
+| ---------------------------------------- | -------------------- | ------------------------------------------ |
+| `PlanStore`, `ArtifactStore`, `RunStore` | Files + SQLite       | Object storage + Postgres                  |
+| `VCSHost` auth                           | Token / `gh`         | GitHub App                                 |
+| `ExecutionEnvironment`                   | Local process, WSL2  | Containers, remote workers                 |
+| Interfaces                               | CLI                  | Web review UI, MCP server, webhook trigger |
+| Config layers                            | Defaults to flags    | Organization policy layer                  |
 
 Everything the CLI does goes through a service layer that other interfaces can call.
 

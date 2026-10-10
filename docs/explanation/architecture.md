@@ -50,11 +50,11 @@ The hand-drawn version, including external systems and the data directory, is in
 
 ## 3. The three places things live
 
-| Place | What lives there | Created |
-|---|---|---|
-| **cog's source repo** (`code-on-graph`) | Code and `docs/` | By you (roadmap step 0) |
-| **cog's data directory** | Runs, checkpoints, plans, indexes, mirrors, managed clones | Automatically on first run |
-| **Target repos** | Nothing, unless you run `cog plan export` or an Implementation step opens a PR | Only on request |
+| Place                                   | What lives there                                                               | Created                    |
+| --------------------------------------- | ------------------------------------------------------------------------------ | -------------------------- |
+| **cog's source repo** (`code-on-graph`) | Code and `docs/`                                                               | By you (roadmap step 0)    |
+| **cog's data directory**                | Runs, checkpoints, plans, indexes, mirrors, managed clones                     | Automatically on first run |
+| **Target repos**                        | Nothing, unless you run `cog plan export` or an Implementation step opens a PR | Only on request            |
 
 See [Configuration and data](configuration-and-data.md) for the data directory layout.
 
@@ -85,49 +85,49 @@ Two interfaces: `LLMClient` (completions, structured output, bounded read-only t
 
 ## 7. Platform support
 
-| Tier | Platform | Commitment |
-|---|---|---|
-| 1 | Windows (Git Bash, PowerShell, Windows Terminal) | Primary; tested in CI |
-| 2 | Linux | CI; WSL2 for Implementation execution |
-| 3 | macOS | Supported; best-effort CI |
+| Tier | Platform                                         | Commitment                            |
+| ---- | ------------------------------------------------ | ------------------------------------- |
+| 1    | Windows (Git Bash, PowerShell, Windows Terminal) | Primary; tested in CI                 |
+| 2    | Linux                                            | CI; WSL2 for Implementation execution |
+| 3    | macOS                                            | Supported; best-effort CI             |
 
 Planning is built and run natively on Windows. **Implementation execution moves to WSL2 or containers** because it runs agents that edit files and run commands, which need real containment. This decision, its reasons, the expected changes, and the triggers for revisiting it are recorded in [ADR-0011](../decisions/0011-platform-support-and-implementation-execution-environment.md).
 
 ### Windows rules the design follows
 
-| Area | Rule |
-|---|---|
-| Paths | `pathlib` everywhere; stored paths are POSIX-style; Git Bash `/c/...` paths never accepted internally; deny-list compares case-folded paths |
-| Clone paths | Short, hash-based names; `core.longpaths` set; no reliance on symlinks |
-| Line endings | Read through git blobs so CRLF conversion cannot alter spans or hashes |
-| Subprocesses | Argument lists, never shell strings; resolve wrapper scripts (`mvnw.cmd`, `gradlew.bat`, `npm.cmd`) explicitly; kill process trees on timeout |
-| Runners | Each records its `shell` (`bash` or `pwsh`); live contract tests run on your machine |
-| Terminal | Plain prompts and explicit `cog resume`; no dependence on a rich TUI, since Git Bash terminals commonly have quirks with interactive programs |
-| Data directory | Resolved with `platformdirs`; must not be in a cloud-synced folder |
-| CI | Windows and Linux matrix; macOS best-effort |
+| Area           | Rule                                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Paths          | `pathlib` everywhere; stored paths are POSIX-style; Git Bash `/c/...` paths never accepted internally; deny-list compares case-folded paths   |
+| Clone paths    | Short, hash-based names; `core.longpaths` set; no reliance on symlinks                                                                        |
+| Line endings   | Read through git blobs so CRLF conversion cannot alter spans or hashes                                                                        |
+| Subprocesses   | Argument lists, never shell strings; resolve wrapper scripts (`mvnw.cmd`, `gradlew.bat`, `npm.cmd`) explicitly; kill process trees on timeout |
+| Runners        | Each records its `shell` (`bash` or `pwsh`); live contract tests run on your machine                                                          |
+| Terminal       | Plain prompts and explicit `cog resume`; no dependence on a rich TUI, since Git Bash terminals commonly have quirks with interactive programs |
+| Data directory | Resolved with `platformdirs`; must not be in a cloud-synced folder                                                                            |
+| CI             | Windows and Linux matrix; macOS best-effort                                                                                                   |
 
 ### `ExecutionEnvironment`
 
 All command execution goes through one interface so the Implementation move to WSL2 or containers does not touch workflows.
 
-| Implementation | Used for |
-|---|---|
-| `LocalProcess` | Planning-side git and tooling; development |
-| `Wsl` | Implementation on Windows (expected) |
-| `Container` | Alternative isolation; future remote workers |
+| Implementation | Used for                                     |
+| -------------- | -------------------------------------------- |
+| `LocalProcess` | Planning-side git and tooling; development   |
+| `Wsl`          | Implementation on Windows (expected)         |
+| `Container`    | Alternative isolation; future remote workers |
 
 ---
 
 ## 8. Cross-cutting concerns
 
-| Concern | Where it lives | Notes |
-|---|---|---|
-| **Policy and sandboxing** | Runtime policy module + `ExecutionEnvironment` | Path deny-list, command allow-list, environment scrubbing, secret redaction before provider calls. Enforced inside tool functions, not only in validators. Detailed in [Policy and sandbox](policy-and-sandbox.md). |
-| **Budgets and cost** | Runtime budgets + provider layer | Per-run and per-node token and dollar caps, cost estimate before long runs, kill switch. See [Providers](providers.md). |
-| **Telemetry** | Runtime telemetry | Event store, structured logs, OpenTelemetry-shaped events. |
-| **Prompts** | Per-workflow prompt files | Versioned, recorded in run records, per-model overrides. See [Providers](providers.md). |
-| **Convention neutrality** | `repo_conventions` node, prompts, acceptance checks | See [ADR-0014](../decisions/0014-repo-convention-precedence.md). |
-| **Data egress** | Policy module | Which repos may go to which provider; secrets redacted from context packs. |
+| Concern                   | Where it lives                                      | Notes                                                                                                                                                                                                               |
+| ------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Policy and sandboxing** | Runtime policy module + `ExecutionEnvironment`      | Path deny-list, command allow-list, environment scrubbing, secret redaction before provider calls. Enforced inside tool functions, not only in validators. Detailed in [Policy and sandbox](policy-and-sandbox.md). |
+| **Budgets and cost**      | Runtime budgets + provider layer                    | Per-run and per-node token and dollar caps, cost estimate before long runs, kill switch. See [Providers](providers.md).                                                                                             |
+| **Telemetry**             | Runtime telemetry                                   | Event store, structured logs, OpenTelemetry-shaped events.                                                                                                                                                          |
+| **Prompts**               | Per-workflow prompt files                           | Versioned, recorded in run records, per-model overrides. See [Providers](providers.md).                                                                                                                             |
+| **Convention neutrality** | `repo_conventions` node, prompts, acceptance checks | See [ADR-0014](../decisions/0014-repo-convention-precedence.md).                                                                                                                                                    |
+| **Data egress**           | Policy module                                       | Which repos may go to which provider; secrets redacted from context packs.                                                                                                                                          |
 
 ---
 
@@ -135,12 +135,12 @@ All command execution goes through one interface so the Implementation move to W
 
 Interfaces with local implementations now; scale implementations later. See [ADR-0013](../decisions/0013-scale-seams-not-scale-features.md).
 
-| Seam | Now | Later |
-|---|---|---|
-| Stores (`PlanStore`, `ArtifactStore`, `RunStore`) | Files + SQLite | Object storage + Postgres |
-| VCS access | Token / `gh auth token` | GitHub App |
-| Execution | Local, WSL2 | Containers, remote workers |
-| Interfaces | CLI | Web review UI, MCP server, webhook |
+| Seam                                              | Now                     | Later                              |
+| ------------------------------------------------- | ----------------------- | ---------------------------------- |
+| Stores (`PlanStore`, `ArtifactStore`, `RunStore`) | Files + SQLite          | Object storage + Postgres          |
+| VCS access                                        | Token / `gh auth token` | GitHub App                         |
+| Execution                                         | Local, WSL2             | Containers, remote workers         |
+| Interfaces                                        | CLI                     | Web review UI, MCP server, webhook |
 
 ---
 

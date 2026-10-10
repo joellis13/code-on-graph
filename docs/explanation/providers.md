@@ -10,13 +10,13 @@ Facts about vendors in this page were checked on **2026-10-06** and change quick
 
 ## 1. Two kinds of "provider"
 
-| | `LLMClient` | `AgentRunner` |
-|---|---|---|
-| What it is | A model endpoint: messages in, completion out | An agent product or loop that edits files and runs commands |
-| Who controls the loop | cog | The adapter (its own tools and prompts), or cog if it is `NativeRunner` |
-| Used by | Planner, query generation, plan review, gap resolution | Implementation workflow (executing task packets) |
-| Needs | Structured output, a small read-only tool budget, per-call logging, untrusted text as data | A working directory, a policy, a budget, acceptance results |
-| Examples | Fireworks, OpenRouter, local servers | `NativeRunner`, Copilot, Antigravity, Claude |
+|                       | `LLMClient`                                                                                | `AgentRunner`                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| What it is            | A model endpoint: messages in, completion out                                              | An agent product or loop that edits files and runs commands             |
+| Who controls the loop | cog                                                                                        | The adapter (its own tools and prompts), or cog if it is `NativeRunner` |
+| Used by               | Planner, query generation, plan review, gap resolution                                     | Implementation workflow (executing task packets)                        |
+| Needs                 | Structured output, a small read-only tool budget, per-call logging, untrusted text as data | A working directory, a policy, a budget, acceptance results             |
+| Examples              | Fireworks, OpenRouter, local servers                                                       | `NativeRunner`, Copilot, Antigravity, Claude                            |
 
 Keeping them separate is what lets Planning keep principle 8 (LLM outputs are proposals, not facts) while Implementation can still use agent products. Planning needs **no** agent CLI.
 
@@ -39,9 +39,7 @@ flowchart LR
 
 ### Contract (illustrative)
 
-```
-generate(tier, messages, schema=None, tools=None, tool_budget=0, cache_key=None) -> LLMResult
-```
+> generate(tier, messages, schema=None, tools=None, tool_budget=0, cache_key=None) -> LLMResult
 
 - **Structured output:** when a schema is given, the result is parsed and **validated with Pydantic by cog** whatever the provider enforces. Invalid output enters a bounded repair loop; exhaustion returns a status, not an exception.
 - **Tool loop:** tools are read-only, typed functions with a hard call budget (Planning allows at most 8 planner tool calls). Every call is logged.
@@ -50,13 +48,13 @@ generate(tier, messages, schema=None, tools=None, tool_budget=0, cache_key=None)
 
 ### Adapters
 
-**OpenAI-compatible adapter (first).** One adapter serves Fireworks, OpenRouter, and local servers (Ollama, vLLM). Provider differences are *config*, recorded as quirks:
+**OpenAI-compatible adapter (first).** One adapter serves Fireworks, OpenRouter, and local servers (Ollama, vLLM). Provider differences are _config_, recorded as quirks:
 
-| Provider | Structured output | Notes |
-|---|---|---|
-| **Fireworks** | JSON mode with a JSON schema, or grammar mode | Using a JSON-schema response format disables reasoning output on models that emit it; an older docs page also says the model does not "see" the schema in that mode, so **include the schema in the prompt too**. Function calling enables JSON mode automatically. **(verify per model)** |
-| **OpenRouter** | `response_format` of type `json_schema` | Support is **per endpoint, not just per model**: the same model may be served by several providers, only some supporting structured output. Set `require_parameters: true` in provider preferences so you are never silently routed to an endpoint that ignores your schema. A response-healing plugin exists for non-streaming calls. Provider preferences (ordering, fallbacks, data-collection policy) matter for egress; **(verify)** current options. |
-| **Local (Ollama, vLLM)** | Varies by server and model | Cheap option for small tiers and query generation. |
+| Provider                 | Structured output                             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fireworks**            | JSON mode with a JSON schema, or grammar mode | Using a JSON-schema response format disables reasoning output on models that emit it; an older docs page also says the model does not "see" the schema in that mode, so **include the schema in the prompt too**. Function calling enables JSON mode automatically. **(verify per model)**                                                                                                                                                                 |
+| **OpenRouter**           | `response_format` of type `json_schema`       | Support is **per endpoint, not just per model**: the same model may be served by several providers, only some supporting structured output. Set `require_parameters: true` in provider preferences so you are never silently routed to an endpoint that ignores your schema. A response-healing plugin exists for non-streaming calls. Provider preferences (ordering, fallbacks, data-collection policy) matter for egress; **(verify)** current options. |
+| **Local (Ollama, vLLM)** | Varies by server and model                    | Cheap option for small tiers and query generation.                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 Rules for every provider:
 
@@ -75,10 +73,8 @@ Rules for every provider:
 
 ### Contract (illustrative)
 
-```
-run(task_packet, workdir, policy, budget, session=None) -> AgentResult
-capabilities: structured_output · sessions · mcp · reports_cost · takeover · native_shell · shell
-```
+> run(task_packet, workdir, policy, budget, session=None) -> AgentResult
+> capabilities: structured_output · sessions · mcp · reports_cost · takeover · native_shell · shell
 
 - **Input:** a task packet from an approved plan, a working directory (a git worktree), the active policy, and a budget.
 - **Output:** status (`succeeded`, `failed`, `needs_human`, `budget_exceeded`), the diff and changed files, a transcript reference, usage, and **acceptance results run by cog**, never trusted from the agent's own claims.
@@ -86,13 +82,13 @@ capabilities: structured_output · sessions · mcp · reports_cost · takeover �
 
 ### Runners
 
-| Runner | Role | Status |
-|---|---|---|
-| **`NativeRunner`** | cog's own tool-calling loop on `LLMClient`, with tools such as `read_file`, `grep`, `symbol_lookup`, `apply_patch`, and allow-listed `run_command`, all passing through policy | Long-term default. The hard parts are reliable edits and context management, which commercial CLIs sell. Built after Planning. |
-| **Copilot** (SDK or CLI) | Optional runner; also a baseline to compare `NativeRunner` against | See below |
-| **Antigravity** (SDK or CLI) | Optional runner, mainly where models are cheaper through the owner's subscription | See below |
-| **Claude** (API key, or unmodified CLI for personal use) | Optional | See terms below |
-| **`FakeRunner`** | Tests | Planned |
+| Runner                                                   | Role                                                                                                                                                                           | Status                                                                                                                         |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **`NativeRunner`**                                       | cog's own tool-calling loop on `LLMClient`, with tools such as `read_file`, `grep`, `symbol_lookup`, `apply_patch`, and allow-listed `run_command`, all passing through policy | Long-term default. The hard parts are reliable edits and context management, which commercial CLIs sell. Built after Planning. |
+| **Copilot** (SDK or CLI)                                 | Optional runner; also a baseline to compare `NativeRunner` against                                                                                                             | See below                                                                                                                      |
+| **Antigravity** (SDK or CLI)                             | Optional runner, mainly where models are cheaper through the owner's subscription                                                                                              | See below                                                                                                                      |
+| **Claude** (API key, or unmodified CLI for personal use) | Optional                                                                                                                                                                       | See terms below                                                                                                                |
+| **`FakeRunner`**                                         | Tests                                                                                                                                                                          | Planned                                                                                                                        |
 
 ### Copilot
 
@@ -160,12 +156,12 @@ ladder = ["small", "medium", "large"]
 
 Workflows do not name tiers directly for completions. They request a **role**, and config resolves role → tier → `(adapter, model)`:
 
-| Role | Used by (Planning) | Default tier |
-|---|---|---|
-| `planner` | Node 15 | large |
-| `query_gen` | Node 11 (optional) | small |
-| `verdict` | Node 13 (optional) | small |
-| `reviewer` | Node 19 (optional) | medium, or an explicit different model; config warns if it resolves to the planner's model |
+| Role        | Used by (Planning) | Default tier                                                                               |
+| ----------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| `planner`   | Node 15            | large                                                                                      |
+| `query_gen` | Node 11 (optional) | small                                                                                      |
+| `verdict`   | Node 13 (optional) | small                                                                                      |
+| `reviewer`  | Node 19 (optional) | medium, or an explicit different model; config warns if it resolves to the planner's model |
 
 `preflight` (node 1) validates that each role's tier exists, is reachable, and has the required capabilities.
 
@@ -175,16 +171,16 @@ Workflows do not name tiers directly for completions. They request a **role**, a
 
 Adapters classify failures so callers can react correctly.
 
-| Class | Typical cause | Default reaction |
-|---|---|---|
-| `AuthError` | Missing or invalid key or login | Stop; tell the user which variable or login |
-| `RateLimited` | HTTP 429 with a retry hint | Back off, retry within budget |
-| `QuotaExceeded` | Subscription or credit exhausted, possibly with a reset time | Stop or fall back to another tier; surface reset time |
-| `Timeout` | Slow call or hung process | Retry once; kill the process tree |
-| `MalformedOutput` | Output fails schema validation | Repair loop, then status |
-| `ContentFiltered` | Provider refusal | Surface; do not retry blindly |
-| `ProviderUnavailable` | 5xx or network | Retry with backoff, then fall back |
-| `CapabilityMissing` | Tier lacks a required feature | Fail at `preflight` |
+| Class                 | Typical cause                                                | Default reaction                                      |
+| --------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
+| `AuthError`           | Missing or invalid key or login                              | Stop; tell the user which variable or login           |
+| `RateLimited`         | HTTP 429 with a retry hint                                   | Back off, retry within budget                         |
+| `QuotaExceeded`       | Subscription or credit exhausted, possibly with a reset time | Stop or fall back to another tier; surface reset time |
+| `Timeout`             | Slow call or hung process                                    | Retry once; kill the process tree                     |
+| `MalformedOutput`     | Output fails schema validation                               | Repair loop, then status                              |
+| `ContentFiltered`     | Provider refusal                                             | Surface; do not retry blindly                         |
+| `ProviderUnavailable` | 5xx or network                                               | Retry with backoff, then fall back                    |
+| `CapabilityMissing`   | Tier lacks a required feature                                | Fail at `preflight`                                   |
 
 ---
 
@@ -219,14 +215,14 @@ Adapters classify failures so callers can react correctly.
 
 ## 9. Verification list for this page
 
-| Item | Check |
-|---|---|
-| Copilot SDK status, package names, Python version support | Vendor docs |
-| Copilot BYOK login requirement | Test on the owner's account |
-| Copilot unattended use from Git Bash on Windows | Live contract test |
-| Antigravity headless flags and output format | Vendor docs and a live test |
-| Antigravity subscription terms for automation | Vendor statement; not currently available |
-| Antigravity plan model access for the owner's tier | Models page |
-| Fireworks structured-output behavior per model | Test each chosen model |
-| OpenRouter provider preferences and data-collection options | Vendor docs |
-| Anthropic terms (if a Claude runner is ever used) | Current legal page |
+| Item                                                        | Check                                     |
+| ----------------------------------------------------------- | ----------------------------------------- |
+| Copilot SDK status, package names, Python version support   | Vendor docs                               |
+| Copilot BYOK login requirement                              | Test on the owner's account               |
+| Copilot unattended use from Git Bash on Windows             | Live contract test                        |
+| Antigravity headless flags and output format                | Vendor docs and a live test               |
+| Antigravity subscription terms for automation               | Vendor statement; not currently available |
+| Antigravity plan model access for the owner's tier          | Models page                               |
+| Fireworks structured-output behavior per model              | Test each chosen model                    |
+| OpenRouter provider preferences and data-collection options | Vendor docs                               |
+| Anthropic terms (if a Claude runner is ever used)           | Current legal page                        |

@@ -44,20 +44,20 @@ Principles:
 
 ### Legend (matches diagram colors)
 
-| Color | Meaning |
-|---|---|
-| Green | Deterministic node |
+| Color                       | Meaning                                                     |
+| --------------------------- | ----------------------------------------------------------- |
+| Green                       | Deterministic node                                          |
 | Green, dashed orange border | Deterministic with an optional, bounded, validated LLM step |
-| Orange | LLM node |
-| Blue | Human-in-the-loop |
-| Yellow diamond | Decision / conditional edge |
-| Gray | Start, end, persisted artifact |
+| Orange                      | LLM node                                                    |
+| Blue                        | Human-in-the-loop                                           |
+| Yellow diamond              | Decision / conditional edge                                 |
+| Gray                        | Start, end, persisted artifact                              |
 
 ---
 
 ## 2. Flow at a glance
 
-```
+```text
 START (cog plan) → 1 preflight → 2 fetch_issue → 3 normalize_issue
       → 4 extract_references → 5 validate_references
       → STAGE 1 (parallel): 6 code_retriever | 7 linked_prs | 8 related_issues | 9 repo_conventions
@@ -193,35 +193,35 @@ Each entry lists type, purpose, inputs and outputs, internal workflow, failure h
 
 One row per node. This table is the model for the registry the code will hold; reference tables and the diagram drift check are generated from it ([ADR-0003](../../decisions/0003-langgraph-orchestration-and-state.md)).
 
-**Fields.** *Kind:* `terminal`, `deterministic`, `hybrid` (deterministic with an optional bounded LLM step), `llm`, `hitl`, `decision`. *Role:* the `LLMClient` role resolved to a tier by config (see Section 7). *Idempotent:* safe to re-run (matters for retries and resume); *interrupt-first* nodes pause before doing anything with side effects. *Status:* build status (`spec`, `stub`, `implemented`, `tested`).
+**Fields.** _Kind:_ `terminal`, `deterministic`, `hybrid` (deterministic with an optional bounded LLM step), `llm`, `hitl`, `decision`. _Role:_ the `LLMClient` role resolved to a tier by config (see Section 7). _Idempotent:_ safe to re-run (matters for retries and resume); _interrupt-first_ nodes pause before doing anything with side effects. _Status:_ build status (`spec`, `stub`, `implemented`, `tested`).
 
-| # | Id | Kind | LLM role | Idempotent | Side effects | Planned module | Status |
-|---|---|---|---|---|---|---|---|
-| START | `start` | terminal | none | n/a | Creates `run_id`, run record | `graph.py` / CLI | spec |
-| 1 | `preflight` | deterministic | none | yes | Fetches managed clone; writes run record | `nodes/preflight.py` | spec |
-| 2 | `fetch_issue` | deterministic | none | yes (cached) | API calls; raw blob; mirror update | `nodes/fetch_issue.py` | spec |
-| 3 | `normalize_issue` | deterministic, pure | none | yes | None | `nodes/normalize_issue.py` | spec |
-| 4 | `extract_references` | deterministic, pure registry | none | yes | None | `nodes/extract_references.py` | spec |
-| 5 | `validate_references` | deterministic | none | yes | Git reads | `nodes/validate_references.py` | spec |
-| 6 | `code_retriever` | deterministic | none | yes | Index build (cached by `base_sha`) | `retrieval/code.py` | spec |
-| 7 | `linked_prs` | deterministic | none | yes | API calls (cached) | `retrieval/linked_prs.py` | spec |
-| 8 | `related_issues` | deterministic | none | yes | Incremental mirror sync | `retrieval/related_issues.py` | spec |
-| 9 | `repo_conventions` | deterministic | none | yes | None (reads clone) | `retrieval/conventions.py` | spec |
-| 10 | `related_prs` | deterministic | none | yes | `git log`; some API calls | `retrieval/related_prs.py` | spec |
-| 11 | `docs_retriever` | hybrid | `query_gen` (optional) | yes (LLM cached by input hash) | LLM call when enabled | `retrieval/docs.py` | spec |
-| 12 | `context_packer` | deterministic | none | yes | Writes context snapshot blob | `retrieval/packer.py` | spec |
-| 13 | `sufficient?` | decision | `verdict` (optional) | yes | Optional LLM call | `nodes/sufficient.py` | spec |
-| 14 | `ask_human` | hitl | none | **interrupt-first** | Pause; stores answers | `nodes/ask_human.py` | spec |
-| 15 | `planner` | llm | `planner` | no (each run is a new, logged call) | LLM and read-only tool calls | `nodes/planner.py` | spec |
-| 16a | `context_gaps?` | decision | none | yes | None | `routing.py` | spec |
-| 16b | `gap_resolver` | deterministic | none | yes | Reads; docs search | `nodes/gap_resolver.py` | spec |
-| 17 | `derive_batches` | deterministic | none | yes | None | `nodes/derive_batches.py` | spec |
-| 18 | `plan_validator` | deterministic | none | yes | Git and index reads | `nodes/plan_validator.py` | spec |
-| 19 | `llm_plan_review` | hybrid (optional) | `reviewer` | yes | LLM call | `nodes/llm_plan_review.py` | spec |
-| 20 | `render_plan` | deterministic | none | yes | Writes derived HTML | `nodes/render_plan.py` | spec |
-| 21 | `hitl_review` | hitl | none | **interrupt-first** | Pause | `nodes/hitl_review.py` | spec |
-| 22 | `persist_plan` | deterministic | none | yes (by plan hash) | Plan and approval files; metadata rows | `nodes/persist_plan.py` | spec |
-| END | `end` | terminal | none | n/a | None | `graph.py` | spec |
+| #     | Id                    | Kind                         | LLM role               | Idempotent                          | Side effects                             | Planned module                 | Status |
+| ----- | --------------------- | ---------------------------- | ---------------------- | ----------------------------------- | ---------------------------------------- | ------------------------------ | ------ |
+| START | `start`               | terminal                     | none                   | n/a                                 | Creates `run_id`, run record             | `graph.py` / CLI               | spec   |
+| 1     | `preflight`           | deterministic                | none                   | yes                                 | Fetches managed clone; writes run record | `nodes/preflight.py`           | spec   |
+| 2     | `fetch_issue`         | deterministic                | none                   | yes (cached)                        | API calls; raw blob; mirror update       | `nodes/fetch_issue.py`         | spec   |
+| 3     | `normalize_issue`     | deterministic, pure          | none                   | yes                                 | None                                     | `nodes/normalize_issue.py`     | spec   |
+| 4     | `extract_references`  | deterministic, pure registry | none                   | yes                                 | None                                     | `nodes/extract_references.py`  | spec   |
+| 5     | `validate_references` | deterministic                | none                   | yes                                 | Git reads                                | `nodes/validate_references.py` | spec   |
+| 6     | `code_retriever`      | deterministic                | none                   | yes                                 | Index build (cached by `base_sha`)       | `retrieval/code.py`            | spec   |
+| 7     | `linked_prs`          | deterministic                | none                   | yes                                 | API calls (cached)                       | `retrieval/linked_prs.py`      | spec   |
+| 8     | `related_issues`      | deterministic                | none                   | yes                                 | Incremental mirror sync                  | `retrieval/related_issues.py`  | spec   |
+| 9     | `repo_conventions`    | deterministic                | none                   | yes                                 | None (reads clone)                       | `retrieval/conventions.py`     | spec   |
+| 10    | `related_prs`         | deterministic                | none                   | yes                                 | `git log`; some API calls                | `retrieval/related_prs.py`     | spec   |
+| 11    | `docs_retriever`      | hybrid                       | `query_gen` (optional) | yes (LLM cached by input hash)      | LLM call when enabled                    | `retrieval/docs.py`            | spec   |
+| 12    | `context_packer`      | deterministic                | none                   | yes                                 | Writes context snapshot blob             | `retrieval/packer.py`          | spec   |
+| 13    | `sufficient?`         | decision                     | `verdict` (optional)   | yes                                 | Optional LLM call                        | `nodes/sufficient.py`          | spec   |
+| 14    | `ask_human`           | hitl                         | none                   | **interrupt-first**                 | Pause; stores answers                    | `nodes/ask_human.py`           | spec   |
+| 15    | `planner`             | llm                          | `planner`              | no (each run is a new, logged call) | LLM and read-only tool calls             | `nodes/planner.py`             | spec   |
+| 16a   | `context_gaps?`       | decision                     | none                   | yes                                 | None                                     | `routing.py`                   | spec   |
+| 16b   | `gap_resolver`        | deterministic                | none                   | yes                                 | Reads; docs search                       | `nodes/gap_resolver.py`        | spec   |
+| 17    | `derive_batches`      | deterministic                | none                   | yes                                 | None                                     | `nodes/derive_batches.py`      | spec   |
+| 18    | `plan_validator`      | deterministic                | none                   | yes                                 | Git and index reads                      | `nodes/plan_validator.py`      | spec   |
+| 19    | `llm_plan_review`     | hybrid (optional)            | `reviewer`             | yes                                 | LLM call                                 | `nodes/llm_plan_review.py`     | spec   |
+| 20    | `render_plan`         | deterministic                | none                   | yes                                 | Writes derived HTML                      | `nodes/render_plan.py`         | spec   |
+| 21    | `hitl_review`         | hitl                         | none                   | **interrupt-first**                 | Pause                                    | `nodes/hitl_review.py`         | spec   |
+| 22    | `persist_plan`        | deterministic                | none                   | yes (by plan hash)                  | Plan and approval files; metadata rows   | `nodes/persist_plan.py`        | spec   |
+| END   | `end`                 | terminal                     | none                   | n/a                                 | None                                     | `graph.py`                     | spec   |
 
 ---
 
@@ -242,6 +242,7 @@ One row per node. This table is the model for the registry the code will hold; r
 **Purpose:** Fail fast and cheaply before spending time, API budget, or tokens.
 
 **Internal workflow:**
+
 1. Resolve the repo (explicit argument, else match the current directory's git remote to a registered managed repo).
 2. Resolve credentials (`GITHUB_TOKEN`, then `gh auth token`) and verify them with a trivial authenticated call.
 3. Check **API budget per bucket** with `GET /rate_limit` (core, GraphQL, search, code search; this call is not counted against the limit, **(verify)**). Warn or abort if core or GraphQL headroom is low. The pipeline never uses the search or code-search APIs, so those buckets are recorded for diagnostics only.
@@ -264,6 +265,7 @@ One row per node. This table is the model for the registry the code will hold; r
 **Purpose:** Retrieve everything GitHub knows about the issue and store it raw. Nothing is dropped here.
 
 **Fetch list:**
+
 - Issue body, title, author, timestamps, state, labels, assignees, milestone
 - All comments (paginate)
 - Timeline events (cross-references, linked PRs, label changes)
@@ -274,6 +276,7 @@ One row per node. This table is the model for the registry the code will hold; r
 **Transport:** one GraphQL query through the `VCSHost` interface returns the fields above (comments paginated by cursor). REST is used only for pieces GraphQL lacks. **(verify)** field availability, including sub-issues. See [ADR-0012](../../decisions/0012-github-integration.md).
 
 **Internal workflow:**
+
 1. Run a minimal GraphQL query for `updatedAt`. If `(repo, issue_number, updated_at)` matches a cached raw record, return it. In `--offline` mode only the cache and mirror are consulted, and a miss is a hard stop.
 2. Fetch the pieces, with retry and backoff on transient errors. Honor `Retry-After`, and treat primary and secondary limits as different conditions. If the budget is exhausted, stop with `failed: rate_limited` and the reset time.
 3. Write the raw JSON to the blob store (unmodified), and update the issue/PR mirror.
@@ -293,6 +296,7 @@ One row per node. This table is the model for the registry the code will hold; r
 **Purpose:** Convert raw GitHub JSON into the stable `NormalizedIssue` schema so downstream nodes never touch GitHub's shapes.
 
 **Internal workflow:**
+
 1. Map fields; convert timestamps to ISO-8601 UTC.
 2. Normalize Markdown: strip tracking pixels, collapse excessive whitespace, but **preserve code blocks and backticks exactly** (they feed identifier extraction).
 3. If the repo uses issue templates, parse sections by heading (e.g., "Steps to reproduce", "Expected behavior") into `sections`.
@@ -311,16 +315,16 @@ One row per node. This table is the model for the registry the code will hold; r
 
 **Design:** Each extractor is a pure function `(NormalizedIssue) -> list[Reference]`, registered by name. The node runs all registered extractors and concatenates results. Adding a type means adding one function and one test; the graph doesn't change.
 
-| Extractor | Finds | Method | Caveat |
-|---|---|---|---|
-| `issue_pr_refs` | `#123`, `owner/repo#123`, GitHub issue/PR URLs | regex | Ignore matches inside code blocks if they're not real refs (e.g., `#define`) |
-| `urls` | external links, docs links | regex / URL parser | Classify by host (docs vs. paste sites vs. other) |
-| `file_paths` | `src/foo/bar.py`, `./config.yaml` | regex against known extensions plus repo-root-relative patterns | Paths may be stale; validated in node 5 |
-| `stack_frames` | Python `File "x.py", line N`; JS `at fn (x.js:L:C)`; Java frames | per-language regex | Keep file, line, function; keep the full trace text |
-| `identifiers` | backticked tokens, CamelCase, snake_case, dotted names | tokenization of code spans and prose | Many false positives in prose; validated in node 5 |
-| `error_strings` | quoted error messages, exception names, error codes | regex for `Error:`/`Exception`, quoted strings in logs | Useful as literal search queries |
-| `versions` | semver, commit SHAs, tags | regex | Commit SHAs can be checked with `git cat-file -e` |
-| `label_area` | labels → code areas | lookup table in repo config | Table is hand-maintained; start small |
+| Extractor       | Finds                                                            | Method                                                          | Caveat                                                                       |
+| --------------- | ---------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `issue_pr_refs` | `#123`, `owner/repo#123`, GitHub issue/PR URLs                   | regex                                                           | Ignore matches inside code blocks if they're not real refs (e.g., `#define`) |
+| `urls`          | external links, docs links                                       | regex / URL parser                                              | Classify by host (docs vs. paste sites vs. other)                            |
+| `file_paths`    | `src/foo/bar.py`, `./config.yaml`                                | regex against known extensions plus repo-root-relative patterns | Paths may be stale; validated in node 5                                      |
+| `stack_frames`  | Python `File "x.py", line N`; JS `at fn (x.js:L:C)`; Java frames | per-language regex                                              | Keep file, line, function; keep the full trace text                          |
+| `identifiers`   | backticked tokens, CamelCase, snake_case, dotted names           | tokenization of code spans and prose                            | Many false positives in prose; validated in node 5                           |
+| `error_strings` | quoted error messages, exception names, error codes              | regex for `Error:`/`Exception`, quoted strings in logs          | Useful as literal search queries                                             |
+| `versions`      | semver, commit SHAs, tags                                        | regex                                                           | Commit SHAs can be checked with `git cat-file -e`                            |
+| `label_area`    | labels → code areas                                              | lookup table in repo config                                     | Table is hand-maintained; start small                                        |
 
 **Outputs:** `refs: list[Reference]` with `status="unchecked"`.
 
@@ -335,6 +339,7 @@ One row per node. This table is the model for the registry the code will hold; r
 **Purpose:** Check each reference against reality so downstream nodes work with verified facts and the planner can see what was real versus guessed.
 
 **Internal workflow:**
+
 1. **Paths:** does the file exist at `base_sha` (looked up in the managed clone's git tree; no working tree needed)? If not, check `git log --follow --diff-filter=R` for a rename and set `status="renamed"` with `resolved`. Otherwise `not_found`.
 2. **Identifiers:** look up in the symbol index (node 6's index; build it here if absent). Exists → `exists`; otherwise `not_found`.
 3. **Stack frames:** verify the file exists and the line is within bounds; capture a ±N-line snippet at `base_sha`. (Line numbers drift; flag if the file changed since the issue was created, using `updated_at` versus the file's last commit.)
@@ -345,6 +350,7 @@ One row per node. This table is the model for the registry the code will hold; r
 **Outputs:** `refs` with statuses.
 
 **Notes:**
+
 - Issues are often written on case-insensitive systems. If an exact path match fails but a case-insensitive match exists, resolve it with `status="renamed"` and a warning.
 - References to paths on the policy deny-list are kept as references (the planner and human should see them) but their contents are never read or emitted.
 - Paths are normalized to POSIX style before comparison and storage.
@@ -370,24 +376,26 @@ Each retriever wraps its body so that expected failures **return a status** inst
 **Purpose:** Find the code the planner needs. This is the most important retriever and the least standardized; the tiers below are a synthesis of established techniques, not a standard.
 
 **Index prerequisites (built once per `base_sha` from the managed clone's git objects, cached):**
+
 - Symbol index: definitions and references (tree-sitter, or `ast` for Python, or an LSP; ctags as a simple fallback)
-- Lexical index: SQLite FTS5 over code chunks, with identifiers split at index time (see the [glossary](../../reference/glossary.md): *identifier splitting*), plus ripgrep for exact matches
+- Lexical index: SQLite FTS5 over code chunks, with identifiers split at index time (see the [glossary](../../reference/glossary.md): _identifier splitting_), plus ripgrep for exact matches
 - Import/dependency graph
 - Optional: embeddings table
 - Repo map (ranked signatures of important files/symbols, in the style of Aider)
 
 **Tiered cascade (highest confidence first):**
 
-| Tier | Source | Confidence |
-|---|---|---|
-| 0 `explicit` | Paths and stack frames named in the issue: read those files/regions | highest |
-| 1 `symbol` | Symbols named in the issue: definitions, plus callers/references | high |
-| 2 `lexical` | BM25 (FTS5) and ripgrep over error strings, validated identifiers, and key phrases | medium |
-| 3 `neighbor` | Tests covering the files above, files they import / that import them, CODEOWNERS owners, sibling files in the same package or module (**exemplars**, emitted with `kind="exemplar"` so the planner can imitate local patterns), **co-change history** (files that historically change in the same commits) | medium |
-| 4 `semantic` | Embedding search over code chunks (optional; add only if evals justify) | lowest |
-| always | A compact repo map for orientation | n/a |
+| Tier         | Source                                                                                                                                                                                                                                                                                                     | Confidence |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 0 `explicit` | Paths and stack frames named in the issue: read those files/regions                                                                                                                                                                                                                                        | highest    |
+| 1 `symbol`   | Symbols named in the issue: definitions, plus callers/references                                                                                                                                                                                                                                           | high       |
+| 2 `lexical`  | BM25 (FTS5) and ripgrep over error strings, validated identifiers, and key phrases                                                                                                                                                                                                                         | medium     |
+| 3 `neighbor` | Tests covering the files above, files they import / that import them, CODEOWNERS owners, sibling files in the same package or module (**exemplars**, emitted with `kind="exemplar"` so the planner can imitate local patterns), **co-change history** (files that historically change in the same commits) | medium     |
+| 4 `semantic` | Embedding search over code chunks (optional; add only if evals justify)                                                                                                                                                                                                                                    | lowest     |
+| always       | A compact repo map for orientation                                                                                                                                                                                                                                                                         | n/a        |
 
 **Internal workflow:**
+
 1. Collect tier-0 items from `refs` where `status in {exists, renamed}`.
 2. For each tier-1 symbol, pull the definition body and a bounded number of references.
 3. Run tier-2 searches with queries built from `error_strings`, validated `identifiers`, and (optionally) the issue title; fuse rankings with RRF if more than one query/index is used.
@@ -409,6 +417,7 @@ Each retriever wraps its body so that expected failures **return a status** inst
 **Purpose:** Fetch PRs explicitly tied to the issue.
 
 **Internal workflow:**
+
 1. Collect PR numbers from timeline cross-reference events, closing references, and `pr_ref` references.
 2. Fetch all of them in **one batched GraphQL query**: metadata, description, review comments, changed-file list, diff stats. Fetch a diff only if it is small (or only for files that overlap code hits). Cache by `(repo, pr, updated_at)`.
 3. Emit `ContextItem(kind="pr", tier="explicit")`.
@@ -424,6 +433,7 @@ Each retriever wraps its body so that expected failures **return a status** inst
 **Purpose:** Surface prior discussion and duplicates.
 
 **Internal workflow:**
+
 1. Explicitly linked issues (`linked_issue_numbers`, `issue_ref` refs): fetch title, state, and key comments in one batched GraphQL query.
 2. Run FTS5 over the **local issue/PR mirror** using validated identifiers and error strings. The mirror is synced incrementally by `updatedAt`; the first sync pages through GraphQL and is bounded by config (for example, a time window) **(verify cost on a large repo)**.
 3. If no mirror exists yet for the repo, return `skipped` with a warning. The GitHub search API (30 requests per minute) is **not** used by default.
@@ -438,6 +448,7 @@ Each retriever wraps its body so that expected failures **return a status** inst
 **Purpose:** Give the planner (and executors) the repo's own rules, so the plan follows the repo and not the harness's taste (principle 9).
 
 **Internal workflow:**
+
 1. Read, from the managed clone at `base_sha`, `AGENTS.md`, `CONTRIBUTING.md`, `CODEOWNERS`, PR/issue templates, any assistant-instruction files the repo carries, and the optional `.cog/config.toml`.
 2. Read **style and tooling configs** as rules: for example `.editorconfig`, Checkstyle, Spotless, ESLint, Prettier, `tsconfig`, `ruff`, `pyproject.toml`, `tox.ini`. They are reported, not interpreted.
 3. Discover how to test, lint, format, type-check, and build: parse `pom.xml` and Gradle files with their wrappers (`mvnw`, `gradlew`), `package.json` scripts, `Makefile`, `pyproject.toml`/`tox.ini`, and CI workflow files.
@@ -445,6 +456,7 @@ Each retriever wraps its body so that expected failures **return a status** inst
 5. Include any free-text style notes from repo config, verbatim, for the planner.
 
 **Notes:**
+
 - **Exemplars** (sibling code to imitate) depend on code hits, so `code_retriever`'s neighbor tier selects them (node 6). This node supplies the rules and tool configs.
 - Read through the deny-list. Wrapper scripts are resolved explicitly on Windows (`mvnw.cmd`, `gradlew.bat`, `npm.cmd`).
 
@@ -458,9 +470,10 @@ Each retriever wraps its body so that expected failures **return a status** inst
 
 **Type:** deterministic
 
-**Purpose:** Find *past* PRs that touched the same code, which are often the best exemplars for how changes are made here.
+**Purpose:** Find _past_ PRs that touched the same code, which are often the best exemplars for how changes are made here.
 
 **Internal workflow:**
+
 1. Take candidate files from `code_retriever` (tiers 0–2, top-K).
 2. Run `git log --follow -n N -- <path>` per file at `base_sha` (history on `main`).
 3. Map commits to PRs:
@@ -480,6 +493,7 @@ Each retriever wraps its body so that expected failures **return a status** inst
 **Purpose:** Find relevant documentation despite the vocabulary gap between issue text and docs.
 
 **Internal workflow:**
+
 1. **Build queries (in order of preference):**
    a. **Validated identifiers** from node 5 (`status=exists`), literal and high-confidence.
    b. **Vocabulary bridging:** harvest module, class, and function names from the top `code_retriever` hits (this is why docs runs after code).
@@ -517,6 +531,7 @@ After the call: drop queries that return zero hits, cache by input hash, run at 
 **Purpose:** Turn everything retrieved into the `PreloadedContext` the LLM will see, within a token budget, with provenance. This is also the checkpoint where content is made safe to leave the machine.
 
 **Internal workflow:**
+
 1. Wait for all retrievers (LangGraph waits on a list-form edge).
 2. Merge `retriever_results` into one item list, statuses, and warnings.
 3. **Apply the path deny-list** again (defense in depth) and **redact secrets**: detected tokens, keys, and credentials are replaced with `[REDACTED:<kind>]`. Items that are secrets in their entirety are dropped. Redaction counts become a warning and a metric.
@@ -540,6 +555,7 @@ After the call: drop queries that return zero hits, cache by input hash, run at 
 **Purpose:** Catch issues that can't be planned well before spending a planner call.
 
 **Deterministic checks (any failure marks the issue "insufficient"):**
+
 - Body shorter than a threshold or empty
 - Bug issue (by label/template) with no reproduction steps or expected behavior
 - Template sections left unfilled
@@ -560,6 +576,7 @@ After the call: drop queries that return zero hits, cache by input hash, run at 
 **Interrupt-first rule:** this node does nothing before `interrupt()`, because a resumed node re-runs from its first line ([primer, Section 5](../../explanation/langgraph-primer.md)). **Node 13 builds the questions**; this node only presents them and stores the answers.
 
 **Internal workflow:**
+
 1. Present the short, specific questions (from the deterministic checks or the LLM verdict) by pausing with reason `clarify`. The CLI prints the run id, the questions, and the exact `cog resume` command.
 2. The checkpointer persists state, and the process may exit.
 3. On resume, store the answers in state as `human_answers` and include them in the planner's context.
@@ -580,6 +597,7 @@ After the call: drop queries that return zero hits, cache by input hash, run at 
 **Tools (read-only, budgeted, e.g., ≤ 8 calls):** `read_file`, `grep`, `symbol_lookup`, `list_dir`, `get_context_item(id)` (to pull items from the manifest). Every call and result is logged, passes through the deny-list and secret redaction, and counts against the tool budget.
 
 **Instructions (summary):**
+
 - Extract `requirements` from the issue first (used for traceability later).
 - Emit tasks with explicit `depends_on`, `files_to_modify`, `files_to_create`, `context_refs`, `acceptance` commands (use only commands from the conventions table), and `stop_conditions`.
 - Write each task so a small model needs **no additional search**: include exact files, signatures, and relevant snippet references.
@@ -606,15 +624,16 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 
 **Routing by `ContextGap.kind`:**
 
-| Kind | Resolver |
-|---|---|
-| `file` | read file (bounded), emit `ContextItem` |
-| `symbol` | symbol index: definition plus references |
-| `search` | lexical search (FTS5/ripgrep), bounded results |
-| `doc` | docs retriever on the gap query |
+| Kind             | Resolver                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `file`           | read file (bounded), emit `ContextItem`                                                                                                 |
+| `symbol`         | symbol index: definition plus references                                                                                                |
+| `search`         | lexical search (FTS5/ripgrep), bounded results                                                                                          |
+| `doc`            | docs retriever on the gap query                                                                                                         |
 | `human_question` | **not resolvable by lookup.** Don't loop; carry it forward as an open question shown at HITL (or as an explicit assumption in the plan) |
 
 **Internal workflow:**
+
 1. Run resolvers for non-human gaps; add results to context with `tier="gap_fill"`.
 2. Record "searched, found nothing" for empty results so the planner doesn't re-ask.
 3. Return the results as a `RetrieverResult(retriever="gap_resolver")`, increment `gap_rounds`, and return to node 15.
@@ -630,6 +649,7 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 **Purpose:** Compute the execution order and parallel groups from task dependencies. The planner does not assert batches.
 
 **Internal workflow:**
+
 1. Build a DAG from `depends_on`.
 2. **Tolerant by design:** unknown ids, duplicate ids, or cycles are recorded in `graph_errors`; the node does not raise (the validator reports them and triggers repair).
 3. Layer tasks by longest-path depth (Kahn's algorithm with levels); tasks at the same level form a batch.
@@ -645,6 +665,7 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 **Purpose:** Reject bad plans mechanically, with precise, actionable errors, before a human spends time on them.
 
 **Checks:**
+
 1. Schema conformance (Pydantic)
 2. Task ids unique; every `depends_on` id exists; no cycles (`graph_errors` empty)
 3. Every `files_to_modify` path exists at `base_sha`; every `files_to_create` has an existing parent directory and doesn't already exist
@@ -670,6 +691,7 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 **Purpose:** Catch what code can't: does the plan actually address the issue? (This is the "rubber duck" step, placed last on purpose.)
 
 **Internal workflow:**
+
 1. Use a **different model** than the planner where possible (`LLMClient`, role `reviewer`; config warns when reviewer and planner resolve to the same model).
 2. Input: issue requirements, plan, validation report. Not the full context.
 3. Structured output: `[{severity: info|warn|critical, task_id?, finding}]` covering requirement→task coverage, risky changes, missing tests, ordering concerns.
@@ -701,11 +723,11 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 
 **Resume payload:** `{decision: "approve" | "edit" | "reject", edited_plan?: Plan, feedback?: str}`, supplied with `cog resume <run_id> --decision ...`. Responses are validated before the run continues.
 
-| Decision | Behavior |
-|---|---|
-| **Approve** | → node 22 |
-| **Edit** | The human edits the plan **JSON** (`--decision edit --file edited.json`). The edit becomes a new immutable plan version with the previous hash as its parent. → node 17 (re-derive batches, since dependencies may have changed) → node 18 (re-validate; hand edits are never trusted blindly) → back here |
-| **Reject + feedback** | Feedback is appended to planner input → node 15. Unbounded, since it is human-driven |
+| Decision              | Behavior                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Approve**           | → node 22                                                                                                                                                                                                                                                                                                  |
+| **Edit**              | The human edits the plan **JSON** (`--decision edit --file edited.json`). The edit becomes a new immutable plan version with the previous hash as its parent. → node 17 (re-derive batches, since dependencies may have changed) → node 18 (re-validate; hand edits are never trusted blindly) → back here |
+| **Reject + feedback** | Feedback is appended to planner input → node 15. Unbounded, since it is human-driven                                                                                                                                                                                                                       |
 
 The review HTML is only a view ([ADR-0007](../../decisions/0007-plans-as-immutable-json.md)).
 
@@ -718,6 +740,7 @@ The review HTML is only a view ([ADR-0007](../../decisions/0007-plans-as-immutab
 **Purpose:** Produce the handoff artifact for the Implementation workflow. Writes only into cog's **data directory**; nothing is written into the target repo.
 
 **Internal workflow:**
+
 1. Write `plans/<owner>__<name>/<issue>/<plan_id>/v<N>/plan.json`: the plan with `schema_version`, `base_sha`, its SHA-256, and a pointer to the stored context snapshot (blob hash) and resolved config, so execution and audits are reproducible.
 2. Write `approval.json` beside it: the approved plan hash, approver, timestamp, and any edits.
 3. Write the derived `plan.html` beside the JSON for reviewers (disposable; regenerable).
@@ -738,15 +761,15 @@ The Implementation workflow takes the approved plan, executes batches sequential
 
 ## 5. Loops and limits
 
-| Loop | Limit | On exhaustion |
-|---|---|---|
-| Clarify (14) | 1 round | Proceed; record assumption |
-| Gap resolution (16) | 2 rounds | Proceed; unresolved gaps shown at HITL |
-| Validator repair (18 → 15) | 3 retries | Escalate to HITL with errors displayed |
-| LLM review (19) | 1 pass; blocks only on critical | Findings shown at HITL |
-| HITL reject (21 → 15) | Unbounded (human-driven) | n/a |
-| Schema repair inside `LLMClient` (15, 11, 13, 19) | A small fixed number of attempts per call | Return a status; the node handles it (for node 15, counts toward the validator loop) |
-| Budget breach (any node) | Per-run and per-node token and dollar caps | Pause with reason `budget`; the human raises the cap, continues, or aborts |
+| Loop                                              | Limit                                      | On exhaustion                                                                        |
+| ------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Clarify (14)                                      | 1 round                                    | Proceed; record assumption                                                           |
+| Gap resolution (16)                               | 2 rounds                                   | Proceed; unresolved gaps shown at HITL                                               |
+| Validator repair (18 → 15)                        | 3 retries                                  | Escalate to HITL with errors displayed                                               |
+| LLM review (19)                                   | 1 pass; blocks only on critical            | Findings shown at HITL                                                               |
+| HITL reject (21 → 15)                             | Unbounded (human-driven)                   | n/a                                                                                  |
+| Schema repair inside `LLMClient` (15, 11, 13, 19) | A small fixed number of attempts per call  | Return a status; the node handles it (for node 15, counts toward the validator loop) |
+| Budget breach (any node)                          | Per-run and per-node token and dollar caps | Pause with reason `budget`; the human raises the cap, continues, or aborts           |
 
 ---
 
@@ -754,19 +777,20 @@ The Implementation workflow takes the approved plan, executes batches sequential
 
 Everything lives in cog's data directory; target repos are untouched. Full layout: [Configuration and data](../../explanation/configuration-and-data.md). Decisions: [ADR-0006](../../decisions/0006-local-first-storage-no-logging-service.md), [ADR-0007](../../decisions/0007-plans-as-immutable-json.md), [ADR-0008](../../decisions/0008-standalone-command-center-managed-clones.md).
 
-| Data | Where | Why |
-|---|---|---|
-| Approved plans, approvals | Files: `plans/<repo>/<issue>/<plan_id>/vN/` (`plan.json`, `approval.json`) | **System of record.** Immutable versions with parent hashes; diffable; survive database loss |
-| Rendered HTML | Beside the plan JSON (`plan.html`) | Derived view; disposable |
-| Plan metadata for queries | `cog.db` (SQLite, WAL) | Index only; rebuildable by rescanning `plans/` |
-| Raw fetched issue data, context snapshots, prompts and responses | `blobs/` (content-addressed files) | Replay and audit |
-| Issue and PR mirror | `mirrors/<repo>/` (SQLite + FTS5) | `related_issues`, offline replay, avoids the search API |
-| Code index (FTS5, symbols, import graph, co-change, optional embeddings) | `indexes/<repo>/<base_sha>/` | Rebuildable cache keyed by commit |
-| Run history, events, metrics | `cog.db`, `runs/<run_id>/events.jsonl` | Queryable; cost is `NULL` when unknown |
-| Graph checkpoints | `checkpoints.db` via the LangGraph SQLite checkpointer **(verify package and class names)** | Interrupt/resume and replay |
-| Target repo | Nothing, unless `cog plan export` is run | No footprint by default |
+| Data                                                                     | Where                                                                                       | Why                                                                                          |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Approved plans, approvals                                                | Files: `plans/<repo>/<issue>/<plan_id>/vN/` (`plan.json`, `approval.json`)                  | **System of record.** Immutable versions with parent hashes; diffable; survive database loss |
+| Rendered HTML                                                            | Beside the plan JSON (`plan.html`)                                                          | Derived view; disposable                                                                     |
+| Plan metadata for queries                                                | `cog.db` (SQLite, WAL)                                                                      | Index only; rebuildable by rescanning `plans/`                                               |
+| Raw fetched issue data, context snapshots, prompts and responses         | `blobs/` (content-addressed files)                                                          | Replay and audit                                                                             |
+| Issue and PR mirror                                                      | `mirrors/<repo>/` (SQLite + FTS5)                                                           | `related_issues`, offline replay, avoids the search API                                      |
+| Code index (FTS5, symbols, import graph, co-change, optional embeddings) | `indexes/<repo>/<base_sha>/`                                                                | Rebuildable cache keyed by commit                                                            |
+| Run history, events, metrics                                             | `cog.db`, `runs/<run_id>/events.jsonl`                                                      | Queryable; cost is `NULL` when unknown                                                       |
+| Graph checkpoints                                                        | `checkpoints.db` via the LangGraph SQLite checkpointer **(verify package and class names)** | Interrupt/resume and replay                                                                  |
+| Target repo                                                              | Nothing, unless `cog plan export` is run                                                    | No footprint by default                                                                      |
 
 Rules:
+
 - Never make a database the only record of an approval.
 - Enable WAL mode; keep write transactions short; guard clone fetches and index builds with per-repo locks.
 - State holds ids and hashes for large payloads, not the payloads.
@@ -790,12 +814,12 @@ General LangGraph concepts are in the [primer](../../explanation/langgraph-prime
 
 Nodes ask for a **role**; config resolves roles to tiers, and tiers to `(adapter, model)` pairs ([Providers](../../explanation/providers.md), Section 4). This keeps model choices out of the workflow.
 
-| Role | Used by | Default tier | Notes |
-|---|---|---|---|
-| `planner` | Node 15 | large | Structured output; read-only tool budget |
-| `query_gen` | Node 11 (optional) | small | Cached by input hash |
-| `verdict` | Node 13 (optional) | small | Off by default until evals justify it |
-| `reviewer` | Node 19 (optional) | medium, or an explicit different model | Config warns if it resolves to the same model as `planner` |
+| Role        | Used by            | Default tier                           | Notes                                                      |
+| ----------- | ------------------ | -------------------------------------- | ---------------------------------------------------------- |
+| `planner`   | Node 15            | large                                  | Structured output; read-only tool budget                   |
+| `query_gen` | Node 11 (optional) | small                                  | Cached by input hash                                       |
+| `verdict`   | Node 13 (optional) | small                                  | Off by default until evals justify it                      |
+| `reviewer`  | Node 19 (optional) | medium, or an explicit different model | Config warns if it resolves to the same model as `planner` |
 
 `executor_tier` in a task (small, medium, large) uses the same tier names, and the escalation ladder is an ordered list of tiers.
 
@@ -871,24 +895,24 @@ A per-run or per-node budget breach is not a silent stop: it raises a pause with
 
 ## 8. Brittleness watchlist
 
-| Risk | Mitigation |
-|---|---|
-| Regex extraction on prose | Extract only structured tokens; validate against the index; keep statuses |
-| Stale paths, line numbers, symbol names in issues | `validate_references` with rename detection; flag drift |
-| One retriever failing breaks the run | Retrievers return statuses; the packer proceeds with partial context and warns |
-| LLM invents files, symbols, or commands | `plan_validator` checks existence against the index and the conventions table |
-| LLM asserts parallel batches that conflict | Batches derived in code; write-sets checked |
-| Unbounded LLM loops | Every loop capped; escalate to HITL |
-| Prompt injection via issue/comments/docs | Treat as data, delimited; read-only tools; no network; path deny-list; secret redaction on context and tool results ([Policy and sandbox](../../explanation/policy-and-sandbox.md)) |
-| Parallel executor edits collide | Per-task git worktrees; deterministic merge; batch gates (Implementation workflow) |
-| Embedding maintenance (chunking, staleness) | Start FTS5-only; add embeddings only if recall evals show a gap |
-| Index staleness | Key all indexes by `base_sha`; rebuild or incrementally update |
-| Rubber-duck LLM review treated as truth | Runs last, advisory, different model |
-| Secrets in code or issues sent to a provider | Redaction in node 12 and on tool results; egress policy checked in `preflight`; keys never in logs |
-| GitHub rate limits (code search 10/min, search 30/min, core and GraphQL 5,000/hour) | No search or code-search API; managed clones and local mirror; GraphQL batching; ETag caching on REST; per-run API accounting |
-| Windows path, case, and line-ending differences | POSIX-normalized paths; case-insensitive fallback in node 5; reads through git blobs; Windows and Linux CI |
-| Provider structured-output quirks (per model and per endpoint) | Capabilities declared in config and checked in `preflight`; schema also in the prompt; always validate and repair |
-| Harness taste overriding a repo's style | Principle 9; no style opinions in prompts; exemplars; repo lint and format commands as the gate |
+| Risk                                                                                | Mitigation                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Regex extraction on prose                                                           | Extract only structured tokens; validate against the index; keep statuses                                                                                                           |
+| Stale paths, line numbers, symbol names in issues                                   | `validate_references` with rename detection; flag drift                                                                                                                             |
+| One retriever failing breaks the run                                                | Retrievers return statuses; the packer proceeds with partial context and warns                                                                                                      |
+| LLM invents files, symbols, or commands                                             | `plan_validator` checks existence against the index and the conventions table                                                                                                       |
+| LLM asserts parallel batches that conflict                                          | Batches derived in code; write-sets checked                                                                                                                                         |
+| Unbounded LLM loops                                                                 | Every loop capped; escalate to HITL                                                                                                                                                 |
+| Prompt injection via issue/comments/docs                                            | Treat as data, delimited; read-only tools; no network; path deny-list; secret redaction on context and tool results ([Policy and sandbox](../../explanation/policy-and-sandbox.md)) |
+| Parallel executor edits collide                                                     | Per-task git worktrees; deterministic merge; batch gates (Implementation workflow)                                                                                                  |
+| Embedding maintenance (chunking, staleness)                                         | Start FTS5-only; add embeddings only if recall evals show a gap                                                                                                                     |
+| Index staleness                                                                     | Key all indexes by `base_sha`; rebuild or incrementally update                                                                                                                      |
+| Rubber-duck LLM review treated as truth                                             | Runs last, advisory, different model                                                                                                                                                |
+| Secrets in code or issues sent to a provider                                        | Redaction in node 12 and on tool results; egress policy checked in `preflight`; keys never in logs                                                                                  |
+| GitHub rate limits (code search 10/min, search 30/min, core and GraphQL 5,000/hour) | No search or code-search API; managed clones and local mirror; GraphQL batching; ETag caching on REST; per-run API accounting                                                       |
+| Windows path, case, and line-ending differences                                     | POSIX-normalized paths; case-insensitive fallback in node 5; reads through git blobs; Windows and Linux CI                                                                          |
+| Provider structured-output quirks (per model and per endpoint)                      | Capabilities declared in config and checked in `preflight`; schema also in the prompt; always validate and repair                                                                   |
+| Harness taste overriding a repo's style                                             | Principle 9; no style opinions in prompts; exemplars; repo lint and format commands as the gate                                                                                     |
 
 ---
 
@@ -898,6 +922,7 @@ A per-run or per-node budget breach is not a silent stop: it raises a pause with
 Take historical issues that have a merged PR. Run nodes 1–12 as of the PR's base commit. Measure what fraction of the files (and, ideally, symbols) the real PR touched appeared in the packed context, overall and by tier. Use this to tune retrievers, tiers, and budgets, and to decide whether embeddings are worth adding.
 
 **Secondary metrics:**
+
 - Context precision (share of packed items the plan actually cites)
 - Validator first-pass rate and repair iterations per plan
 - Gap rounds per plan; how often `human_question` gaps occur
@@ -914,19 +939,19 @@ Take historical issues that have a merged PR. Run nodes 1–12 as of the PR's ba
 
 ## 10. Open decisions
 
-| # | Decision | Status |
-|---|---|---|
-| 1 | Primary language(s) of target repos | **Resolved:** Java, TypeScript, Python (tree-sitter first, behind the `Index` interface) |
-| 2 | Typical repo size | **Resolved for design:** varies, so design for large repos (cached, commit-keyed builds). Whether embeddings are worth their cost remains **data-driven** (below) |
-| 3 | Local mirror of issues/PRs | **Resolved:** yes ([ADR-0012](../../decisions/0012-github-integration.md)) |
-| 4 | Token budget split between issue, code, docs, PRs, and conventions | **Open:** tune with the recall eval |
-| 5 | Whether node 13's LLM verdict is needed | **Open:** default off; add if deterministic checks prove insufficient |
-| 6 | Model tiers for `executor_tier` and the escalation ladder | **Resolved:** a config concern ([ADR-0004](../../decisions/0004-two-provider-interfaces.md)); defaults in [Providers](../../explanation/providers.md) |
-| 7 | Whether to add embeddings | **Open, data-driven:** only if the recall eval shows a gap lexical and structural search cannot close |
-| 8 | Bounds for the first issue/PR mirror sync (time window, count) | **New, open:** decide when the mirror is built; check cost on a large repo |
-| 9 | Bare issue number outside a known clone: error, or prompt to choose a repo | **New, open** (Interaction model, Section 8) |
-| 10 | Wiki documentation as an additional `docs_retriever` source | **New, deferred:** docs live in the repos for now |
-| 11 | Secret-redaction rules and false-positive handling | **Resolved in design:** [ADR-0016](../../decisions/0016-secret-redaction.md) and [Policy and sandbox](../../explanation/policy-and-sandbox.md), Section 7. Tuning against real repos remains open |
+| #   | Decision                                                                   | Status                                                                                                                                                                                            |
+| --- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Primary language(s) of target repos                                        | **Resolved:** Java, TypeScript, Python (tree-sitter first, behind the `Index` interface)                                                                                                          |
+| 2   | Typical repo size                                                          | **Resolved for design:** varies, so design for large repos (cached, commit-keyed builds). Whether embeddings are worth their cost remains **data-driven** (below)                                 |
+| 3   | Local mirror of issues/PRs                                                 | **Resolved:** yes ([ADR-0012](../../decisions/0012-github-integration.md))                                                                                                                        |
+| 4   | Token budget split between issue, code, docs, PRs, and conventions         | **Open:** tune with the recall eval                                                                                                                                                               |
+| 5   | Whether node 13's LLM verdict is needed                                    | **Open:** default off; add if deterministic checks prove insufficient                                                                                                                             |
+| 6   | Model tiers for `executor_tier` and the escalation ladder                  | **Resolved:** a config concern ([ADR-0004](../../decisions/0004-two-provider-interfaces.md)); defaults in [Providers](../../explanation/providers.md)                                             |
+| 7   | Whether to add embeddings                                                  | **Open, data-driven:** only if the recall eval shows a gap lexical and structural search cannot close                                                                                             |
+| 8   | Bounds for the first issue/PR mirror sync (time window, count)             | **New, open:** decide when the mirror is built; check cost on a large repo                                                                                                                        |
+| 9   | Bare issue number outside a known clone: error, or prompt to choose a repo | **New, open** (Interaction model, Section 8)                                                                                                                                                      |
+| 10  | Wiki documentation as an additional `docs_retriever` source                | **New, deferred:** docs live in the repos for now                                                                                                                                                 |
+| 11  | Secret-redaction rules and false-positive handling                         | **Resolved in design:** [ADR-0016](../../decisions/0016-secret-redaction.md) and [Policy and sandbox](../../explanation/policy-and-sandbox.md), Section 7. Tuning against real repos remains open |
 
 ---
 
@@ -934,35 +959,35 @@ Take historical issues that have a merged PR. Run nodes 1–12 as of the PR's ba
 
 Recorded so the reasoning survives. Each row says when to revisit.
 
-| Alternative | Decision | Why | Revisit when |
-|---|---|---|---|
-| LLM-first extraction (an LLM emits `search_keywords` and `mentioned_files` as the first step) | Rejected | Paths and symbols produced by an LLM can look authoritative and be wrong (e.g., `src/auth.py` instead of `src/auth/token.py`), and nothing downstream checks them. It can also reformat stack frames and error strings, breaking exact-match search, and it puts a model call (on untrusted text) at the start of every run. Regex plus an existence check is high-precision and testable | Never for structured tokens. For *queries*, see the next row |
-| LLM generates search queries | Optional, bounded (node 11) | Vocabulary choice is a judgment task. Constrained, tagged, capped, filtered by code | Recall eval shows validated-identifier queries miss relevant docs |
-| TF-IDF / RAKE / YAKE keyword extraction on issue text | Rejected | Poor on short, noisy, code-heavy text | Unlikely |
-| Vector database from day one | Rejected | FTS5 plus brute-force numpy handles tens of thousands of chunks; embeddings add chunking and staleness work | Recall eval shows a gap lexical search can't close, or corpus grows beyond brute-force range |
-| LLM-asserted batches | Rejected | Code derives them from `depends_on`; write-sets are checked | Never |
-| LLM review as the main validator | Rejected | Least reliable validator; runs last and is advisory (node 19) | Never as primary |
-| Open-ended agentic loop for context gathering | Rejected for v1 | Costly and hard to reproduce. Replaced by a read-only tool budget plus structured `context_gaps` (nodes 15, 16) | Eval shows frequent unresolved gaps, or recall is poor on ambiguous issues |
-| Purely deterministic preload with no planner tools or gaps | Rejected | Fails on vague issues; the planner can't ask for what the pipeline missed | n/a |
+| Alternative                                                                                   | Decision                    | Why                                                                                                                                                                                                                                                                                                                                                                                       | Revisit when                                                                                 |
+| --------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| LLM-first extraction (an LLM emits `search_keywords` and `mentioned_files` as the first step) | Rejected                    | Paths and symbols produced by an LLM can look authoritative and be wrong (e.g., `src/auth.py` instead of `src/auth/token.py`), and nothing downstream checks them. It can also reformat stack frames and error strings, breaking exact-match search, and it puts a model call (on untrusted text) at the start of every run. Regex plus an existence check is high-precision and testable | Never for structured tokens. For _queries_, see the next row                                 |
+| LLM generates search queries                                                                  | Optional, bounded (node 11) | Vocabulary choice is a judgment task. Constrained, tagged, capped, filtered by code                                                                                                                                                                                                                                                                                                       | Recall eval shows validated-identifier queries miss relevant docs                            |
+| TF-IDF / RAKE / YAKE keyword extraction on issue text                                         | Rejected                    | Poor on short, noisy, code-heavy text                                                                                                                                                                                                                                                                                                                                                     | Unlikely                                                                                     |
+| Vector database from day one                                                                  | Rejected                    | FTS5 plus brute-force numpy handles tens of thousands of chunks; embeddings add chunking and staleness work                                                                                                                                                                                                                                                                               | Recall eval shows a gap lexical search can't close, or corpus grows beyond brute-force range |
+| LLM-asserted batches                                                                          | Rejected                    | Code derives them from `depends_on`; write-sets are checked                                                                                                                                                                                                                                                                                                                               | Never                                                                                        |
+| LLM review as the main validator                                                              | Rejected                    | Least reliable validator; runs last and is advisory (node 19)                                                                                                                                                                                                                                                                                                                             | Never as primary                                                                             |
+| Open-ended agentic loop for context gathering                                                 | Rejected for v1             | Costly and hard to reproduce. Replaced by a read-only tool budget plus structured `context_gaps` (nodes 15, 16)                                                                                                                                                                                                                                                                           | Eval shows frequent unresolved gaps, or recall is poor on ambiguous issues                   |
+| Purely deterministic preload with no planner tools or gaps                                    | Rejected                    | Fails on vague issues; the planner can't ask for what the pipeline missed                                                                                                                                                                                                                                                                                                                 | n/a                                                                                          |
 
 ### Decisions recorded as ADRs
 
 Platform and project-wide decisions live in the [ADR index](../../decisions/README.md) rather than here. The ones that shape this workflow:
 
-| ADR | Effect on Planning |
-|---|---|
-| [0003](../../decisions/0003-langgraph-orchestration-and-state.md) | Node contract, typed state, injected dependencies, registry |
-| [0004](../../decisions/0004-two-provider-interfaces.md) | Planning uses `LLMClient` only; roles and tiers |
-| [0005](../../decisions/0005-direct-providers-first.md) | Fireworks and OpenRouter first; no agent CLI needed |
-| [0007](../../decisions/0007-plans-as-immutable-json.md) | Plans are immutable files; HTML derived; no repo footprint |
-| [0008](../../decisions/0008-standalone-command-center-managed-clones.md) | Managed clones; reads through git objects |
-| [0012](../../decisions/0012-github-integration.md) | GraphQL, local mirror, API budget; no code-search API |
-| [0014](../../decisions/0014-repo-convention-precedence.md) | Principle 9; conventions and exemplars |
-| [0016](../../decisions/0016-secret-redaction.md) | Redaction in node 12, tool results, adapters, and logs |
-| [0017](../../decisions/0017-index-design.md) | Commit-keyed index, parse cache, tree-sitter; used by nodes 5, 6, 9, 10, 11, 16b, 18 |
+| ADR                                                                      | Effect on Planning                                                                   |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| [0003](../../decisions/0003-langgraph-orchestration-and-state.md)        | Node contract, typed state, injected dependencies, registry                          |
+| [0004](../../decisions/0004-two-provider-interfaces.md)                  | Planning uses `LLMClient` only; roles and tiers                                      |
+| [0005](../../decisions/0005-direct-providers-first.md)                   | Fireworks and OpenRouter first; no agent CLI needed                                  |
+| [0007](../../decisions/0007-plans-as-immutable-json.md)                  | Plans are immutable files; HTML derived; no repo footprint                           |
+| [0008](../../decisions/0008-standalone-command-center-managed-clones.md) | Managed clones; reads through git objects                                            |
+| [0012](../../decisions/0012-github-integration.md)                       | GraphQL, local mirror, API budget; no code-search API                                |
+| [0014](../../decisions/0014-repo-convention-precedence.md)               | Principle 9; conventions and exemplars                                               |
+| [0016](../../decisions/0016-secret-redaction.md)                         | Redaction in node 12, tool results, adapters, and logs                               |
+| [0017](../../decisions/0017-index-design.md)                             | Commit-keyed index, parse cache, tree-sitter; used by nodes 5, 6, 9, 10, 11, 16b, 18 |
 
 ---
 
 ## Glossary
 
-Terms used in this document are defined in the [shared glossary](../../reference/glossary.md). Terms specific to this workflow appear there under *Search and retrieval*, *LangGraph and orchestration*, and the other original sections.
+Terms used in this document are defined in the [shared glossary](../../reference/glossary.md). Terms specific to this workflow appear there under _Search and retrieval_, _LangGraph and orchestration_, and the other original sections.

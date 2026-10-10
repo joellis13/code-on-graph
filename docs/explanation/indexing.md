@@ -23,17 +23,17 @@ Building the data structures that answer those questions is **indexing**. It is 
 
 ## 2. What gets built
 
-| Component | Answers | Built from | Notes |
-|---|---|---|---|
-| **File inventory** | What exists at this commit | `git ls-tree` at `base_sha` | Filtered by policy, size, and type (Section 5) |
-| **Lexical index** | Text and identifier search, error strings | SQLite FTS5 over chunks | Identifier splitting at index time; optional trigram table for substrings |
-| **Symbol index** | Definitions, signatures, containment | tree-sitter parse trees | Java, TypeScript, Python first |
-| **Reference table** | Where a name is used | Identifier occurrences in parse trees | **Name-based, not resolved**; see Section 6 |
-| **Import graph** | What depends on what | Import statements per language | File-level edges, best-effort module resolution |
-| **Test map** | Tests for a source file | Naming patterns plus imports | Patterns are configurable; see Section 8 |
-| **Co-change table** | Files that change in the same commits | `git log --name-only` over a window | Cheap and strongly predictive |
-| **Repo map** | Orientation within a token budget | Ranked signatures | Aider-style; ranking over the import and reference graph |
-| **Embeddings** *(optional)* | Semantic similarity | Embedding model over chunks | Deferred until the recall eval shows a gap |
+| Component                   | Answers                                   | Built from                            | Notes                                                                     |
+| --------------------------- | ----------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| **File inventory**          | What exists at this commit                | `git ls-tree` at `base_sha`           | Filtered by policy, size, and type (Section 5)                            |
+| **Lexical index**           | Text and identifier search, error strings | SQLite FTS5 over chunks               | Identifier splitting at index time; optional trigram table for substrings |
+| **Symbol index**            | Definitions, signatures, containment      | tree-sitter parse trees               | Java, TypeScript, Python first                                            |
+| **Reference table**         | Where a name is used                      | Identifier occurrences in parse trees | **Name-based, not resolved**; see Section 6                               |
+| **Import graph**            | What depends on what                      | Import statements per language        | File-level edges, best-effort module resolution                           |
+| **Test map**                | Tests for a source file                   | Naming patterns plus imports          | Patterns are configurable; see Section 8                                  |
+| **Co-change table**         | Files that change in the same commits     | `git log --name-only` over a window   | Cheap and strongly predictive                                             |
+| **Repo map**                | Orientation within a token budget         | Ranked signatures                     | Aider-style; ranking over the import and reference graph                  |
+| **Embeddings** _(optional)_ | Semantic similarity                       | Embedding model over chunks           | Deferred until the recall eval shows a gap                                |
 
 ---
 
@@ -41,7 +41,7 @@ Building the data structures that answer those questions is **indexing**. It is 
 
 Retrievers and the validator use one interface and never touch the storage directly. Signatures are illustrative.
 
-```
+```text
 search_text(query, kinds, limit)        -> list of ranked chunks
 find_symbol(name, kind=None)            -> definitions (path, range, signature)
 references_to(name, limit)              -> occurrences (name-based, with confidence)
@@ -122,11 +122,11 @@ Error strings need exact matches, which a word-oriented FTS index handles poorly
 
 Java, TypeScript, and Python come first, through tree-sitter grammars behind the `Index` interface. The repos are backend, front end, and test automation, of varying size. What is extracted:
 
-| Language | Symbols | Imports | Notes |
-|---|---|---|---|
-| **Java** | packages, classes, interfaces, enums, records, methods, constructors, fields, annotations | `import` statements, package structure | Maven and Gradle layouts are recognized for test roots, but no framework is assumed |
-| **TypeScript** (and JavaScript) | modules, classes, interfaces, type aliases, functions, arrow-function constants, exports | `import`/`export from`, path aliases from `tsconfig` when present | React components are just functions; no framework conventions are imposed |
-| **Python** | modules, classes, functions, methods, decorators | `import`, `from ... import` | Relative imports resolved against package layout |
+| Language                        | Symbols                                                                                   | Imports                                                           | Notes                                                                               |
+| ------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Java**                        | packages, classes, interfaces, enums, records, methods, constructors, fields, annotations | `import` statements, package structure                            | Maven and Gradle layouts are recognized for test roots, but no framework is assumed |
+| **TypeScript** (and JavaScript) | modules, classes, interfaces, type aliases, functions, arrow-function constants, exports  | `import`/`export from`, path aliases from `tsconfig` when present | React components are just functions; no framework conventions are imposed           |
+| **Python**                      | modules, classes, functions, methods, decorators                                          | `import`, `from ... import`                                       | Relative imports resolved against package layout                                    |
 
 ### Honest limits of tree-sitter
 
@@ -199,14 +199,14 @@ Repo size varies, so the design avoids assumptions:
 
 ## 11. Failure modes
 
-| Failure | Effect | Handling |
-|---|---|---|
-| Parse error in one file | That file has no symbols | Fall back to line-window chunks; count in the build report |
-| Unsupported language | No symbols | Lexical chunks only; no failure |
+| Failure                                  | Effect                   | Handling                                                         |
+| ---------------------------------------- | ------------------------ | ---------------------------------------------------------------- |
+| Parse error in one file                  | That file has no symbols | Fall back to line-window chunks; count in the build report       |
+| Unsupported language                     | No symbols               | Lexical chunks only; no failure                                  |
 | Grammar package missing or wrong version | Symbol tiers unavailable | `cog doctor` flags it; retrievers return `skipped` with a reason |
-| Build interrupted | Partial data | Atomic publish means no partial index is ever visible |
-| Huge repo or file | Slow or oversized build | Limits, time budget, fallback to lexical-only |
-| Clone out of date | Wrong `base_sha` data | `preflight` fetches and records the commit used |
+| Build interrupted                        | Partial data             | Atomic publish means no partial index is ever visible            |
+| Huge repo or file                        | Slow or oversized build  | Limits, time budget, fallback to lexical-only                    |
+| Clone out of date                        | Wrong `base_sha` data    | `preflight` fetches and records the commit used                  |
 
 ---
 

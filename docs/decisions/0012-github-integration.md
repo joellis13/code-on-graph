@@ -17,13 +17,13 @@ Code, docs, and issues all live on GitHub (github.com). The owner reports hittin
 
 **Minimize API use by design:**
 
-| Need | Source | API cost |
-|---|---|---|
-| Code retrieval and search | Managed clone + local index | None |
-| `related_prs` history | Local `git log` | None |
-| `repo_conventions`, `docs_retriever` | Files in the clone (a wiki is a separate git repo) | None |
-| Issue, comments, timeline, linked PRs | One GraphQL query, cached by `(repo, issue, updated_at)` | Low |
-| `related_issues` | **Local issue/PR mirror** with full-text search, synced incrementally | Low |
+| Need                                  | Source                                                                | API cost |
+| ------------------------------------- | --------------------------------------------------------------------- | -------- |
+| Code retrieval and search             | Managed clone + local index                                           | None     |
+| `related_prs` history                 | Local `git log`                                                       | None     |
+| `repo_conventions`, `docs_retriever`  | Files in the clone (a wiki is a separate git repo)                    | None     |
+| Issue, comments, timeline, linked PRs | One GraphQL query, cached by `(repo, issue, updated_at)`              | Low      |
+| `related_issues`                      | **Local issue/PR mirror** with full-text search, synced incrementally | Low      |
 
 **Client behavior:** conditional REST requests (ETag; GraphQL does not support them), header-aware handling that treats primary and secondary limits as different mechanisms (waiting out the primary reset does not clear a secondary limit), a concurrency cap, per-run API budget accounting in the event store, `Retry-After` respected, and an `--offline` mode that replays from the mirror.
 

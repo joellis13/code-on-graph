@@ -12,17 +12,17 @@ Planning is Python, git, SQLite, and HTTP, and runs natively on Windows without 
 Observations (checked 2026-10-06):
 
 - Copilot CLI and Antigravity CLI work interactively from Git Bash for the owner.
-- Third-party guidance rates native Windows support for Copilot CLI as experimental and recommends WSL for the most stable experience. It expects PowerShell 6 or newer, and users report it executes commands through PowerShell even when started from Git Bash. This is secondary evidence; the owner's direct experience is good. The risk is *unattended* use, where bash-versus-PowerShell command syntax and permission prompts matter and nobody is watching.
+- Third-party guidance rates native Windows support for Copilot CLI as experimental and recommends WSL for the most stable experience. It expects PowerShell 6 or newer, and users report it executes commands through PowerShell even when started from Git Bash. This is secondary evidence; the owner's direct experience is good. The risk is _unattended_ use, where bash-versus-PowerShell command syntax and permission prompts matter and nobody is watching.
 
 ## Decision
 
 **Platform tiers**
 
-| Tier | Platform | Commitment |
-|---|---|---|
-| 1 | Windows | Primary development and manual use; tested in CI |
-| 2 | Linux | CI; WSL2 as the Implementation execution environment |
-| 3 | macOS | Supported; best-effort CI; not a primary test target |
+| Tier | Platform | Commitment                                           |
+| ---- | -------- | ---------------------------------------------------- |
+| 1    | Windows  | Primary development and manual use; tested in CI     |
+| 2    | Linux    | CI; WSL2 as the Implementation execution environment |
+| 3    | macOS    | Supported; best-effort CI; not a primary test target |
 
 **Planning** is built and run natively on Windows (Git Bash, PowerShell, or Windows Terminal).
 

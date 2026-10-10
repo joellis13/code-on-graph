@@ -74,50 +74,58 @@ Tentative node areas: plan loading and verification, staleness check, workspace 
 
 ## 5. What the foundation already provides
 
-| Need | Provided by |
-|---|---|
-| Resumable, inspectable runs | LangGraph checkpoints, event store |
-| Human pauses and the CLI | Interaction model (`resume`, `takeover`, `cancel`) |
-| Model and agent access | `AgentRunner`, tiers, escalation ladder, adapters |
-| Containment | `ExecutionEnvironment` (WSL2 or containers expected), policy snapshot |
-| Cost control | Budgets, estimates before long runs |
-| Evidence | Event store, blobs, transcripts |
+| Need                        | Provided by                                                           |
+| --------------------------- | --------------------------------------------------------------------- |
+| Resumable, inspectable runs | LangGraph checkpoints, event store                                    |
+| Human pauses and the CLI    | Interaction model (`resume`, `takeover`, `cancel`)                    |
+| Model and agent access      | `AgentRunner`, tiers, escalation ladder, adapters                     |
+| Containment                 | `ExecutionEnvironment` (WSL2 or containers expected), policy snapshot |
+| Cost control                | Budgets, estimates before long runs                                   |
+| Evidence                    | Event store, blobs, transcripts                                       |
 
 ---
 
 ## 6. Questions to answer in the design
 
 **Execution environment** ([ADR-0011](../../decisions/0011-platform-support-and-implementation-execution-environment.md))
+
 - Does cog run entirely inside WSL2, or on Windows dispatching into it? Where do managed clones and worktrees live? One data directory per environment, or shared?
 - Which sandbox tier is the minimum for unattended runs, and how is the network profile per command enforced?
 
 **Agent runners**
+
 - `NativeRunner` design: edit format (unified diff, search-and-replace blocks, whole-file), tool set, context management, loop bounds, and how it recovers from failed edits.
 - Copilot BYOK as a stopgap and baseline: its contract test results decide how much to rely on it.
 - How each runner receives the task packet and policy, and how its transcript and usage are normalized.
 
 **Workspace and integration**
+
 - Worktree lifecycle, naming, reset between retries, and cleanup after crashes (`cog gc`).
 - How parallel task changes combine: sequential application in dependency order, per-task branches merged, or patches applied to one worktree; and how conflicts are detected and surfaced.
 - One commit per task, per batch, or one in total, constrained by the repo's conventions.
 
 **Acceptance and escalation**
+
 - Command semantics: working directory, timeouts, flaky tests, partial passes, tests that need services.
 - The escalation ladder: when to retry the same tier versus climb, and how failure evidence is passed to the next attempt.
 - Stop conditions in the packet: how they are checked and what they trigger.
 
 **GitHub write path**
+
 - Branch naming, PR templates, linking the issue, what plan summary or trace goes in the description.
 - Write-scoped authentication, separate from the read-only token used by Planning; a GitHub App as the scale-up route.
 
 **Staleness and drift**
+
 - What counts as "plan is stale," and whether to re-run Planning's validation automatically.
 
 **Safety**
+
 - Prompt-injection exposure now that agents edit files; which files an agent may read beyond its task list.
 - Secret handling in transcripts and diffs.
 
 **Cost**
+
 - Estimating cost before starting; pausing when the estimate exceeds the cap.
 
 ---

@@ -28,25 +28,25 @@ Code-OG (`code-on-graph`, command `cog`) is a standalone command center for AI-a
 
 Sorted by Diátaxis type.
 
-| Type | Document | Status |
-|---|---|---|
-| Explanation | [Architecture](explanation/architecture.md) | Round 1 ✔ |
-| Explanation | [LangGraph primer](explanation/langgraph-primer.md) | Round 1 ✔ |
-| Explanation | [Providers](explanation/providers.md) | Round 1 ✔ |
-| Explanation | [Configuration and data](explanation/configuration-and-data.md) | Round 1 ✔ |
-| Explanation | [Interaction model](explanation/interaction-model.md) | Round 1 ✔ |
-| Explanation | [Indexing](explanation/indexing.md) | Round 3 ✔ |
-| Explanation | [Policy and sandbox](explanation/policy-and-sandbox.md) | Round 3 ✔ |
-| Explanation | [Testing and evaluation](explanation/testing-and-evaluation.md) | Round 3 ✔ |
-| Explanation | [Documentation strategy](explanation/documentation-strategy.md) | Round 3 ✔ |
-| Workflow | [Planning reference (v3)](workflows/planning/reference.md) and [diagram (v3)](workflows/planning/workflow.drawio) | Round 2 ✔ |
-| Workflow | [Implementation outline](workflows/implementation/outline.md) | Round 3 ✔ (outline only) |
-| Decisions | [ADRs 0001–0017](decisions/README.md) | Rounds 1–3 ✔ |
-| Reference | [Glossary](reference/glossary.md) | Round 1 ✔ (moved from the Planning reference) |
-| Reference | [Repo layout](reference/repo-layout.md) | Round 1 ✔ |
-| Reference | CLI, config, schemas | Generated once code exists |
-| Diagrams | [Architecture](diagrams/architecture.drawio), [Providers](diagrams/providers.drawio) | Round 1 ✔ |
-| How-to, Tutorials | Not yet | After the CLI exists |
+| Type              | Document                                                                                                          | Status                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Explanation       | [Architecture](explanation/architecture.md)                                                                       | Round 1 ✔                                     |
+| Explanation       | [LangGraph primer](explanation/langgraph-primer.md)                                                               | Round 1 ✔                                     |
+| Explanation       | [Providers](explanation/providers.md)                                                                             | Round 1 ✔                                     |
+| Explanation       | [Configuration and data](explanation/configuration-and-data.md)                                                   | Round 1 ✔                                     |
+| Explanation       | [Interaction model](explanation/interaction-model.md)                                                             | Round 1 ✔                                     |
+| Explanation       | [Indexing](explanation/indexing.md)                                                                               | Round 3 ✔                                     |
+| Explanation       | [Policy and sandbox](explanation/policy-and-sandbox.md)                                                           | Round 3 ✔                                     |
+| Explanation       | [Testing and evaluation](explanation/testing-and-evaluation.md)                                                   | Round 3 ✔                                     |
+| Explanation       | [Documentation strategy](explanation/documentation-strategy.md)                                                   | Round 3 ✔                                     |
+| Workflow          | [Planning reference (v3)](workflows/planning/reference.md) and [diagram (v3)](workflows/planning/workflow.drawio) | Round 2 ✔                                     |
+| Workflow          | [Implementation outline](workflows/implementation/outline.md)                                                     | Round 3 ✔ (outline only)                      |
+| Decisions         | [ADRs 0001–0017](decisions/README.md)                                                                             | Rounds 1–3 ✔                                  |
+| Reference         | [Glossary](reference/glossary.md)                                                                                 | Round 1 ✔ (moved from the Planning reference) |
+| Reference         | [Repo layout](reference/repo-layout.md)                                                                           | Round 1 ✔                                     |
+| Reference         | CLI, config, schemas                                                                                              | Generated once code exists                    |
+| Diagrams          | [Architecture](diagrams/architecture.drawio), [Providers](diagrams/providers.drawio)                              | Round 1 ✔                                     |
+| How-to, Tutorials | Not yet                                                                                                           | After the CLI exists                          |
 
 ---
 

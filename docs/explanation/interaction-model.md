@@ -2,7 +2,7 @@
 
 **Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06
 
-How people use Code-OG: a command-line tool, no chat window. Commands marked *(planned)* do not exist yet; this page is the specification they will be built against.
+How people use Code-OG: a command-line tool, no chat window. Commands marked _(planned)_ do not exist yet; this page is the specification they will be built against.
 
 ---
 
@@ -19,20 +19,20 @@ How people use Code-OG: a command-line tool, no chat window. Commands marked *(p
 
 ## 2. Commands
 
-| Command | Purpose |
-|---|---|
-| `cog plan <issue>` *(planned)* | Run the Planning workflow on an issue (`owner/repo#123`, or `123` inside a known clone) |
-| `cog resume <run_id>` *(planned)* | Resume a paused run with a decision or answer |
-| `cog runs list` / `cog runs show <run_id>` *(planned)* | Browse runs, statuses, costs, and events |
-| `cog cancel <run_id>` *(planned)* | Stop a run at the next safe point |
-| `cog plan export <plan_id>` *(planned)* | Write a plan into a target repo (`.cog/plans/`), optionally as a commit or PR |
-| `cog repo add <url-or-path>` / `cog repo list` *(planned)* | Manage managed clones |
-| `cog index build <repo>` / `cog index query ...` *(planned)* | Build and debug the index by hand |
-| `cog config show [--explain]` *(planned)* | Show resolved config and which layer set each value |
-| `cog doctor` *(planned)* | Check environment and credentials (below) |
-| `cog eval run` *(planned)* | Run evaluations, such as the context-recall eval |
-| `cog takeover <run_id>` *(planned, Implementation)* | Open an interactive agent session in a task's worktree |
-| `cog gc` *(planned)* | Prune old runs, blobs, indexes, and orphaned worktrees |
+| Command                                                      | Purpose                                                                                 |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `cog plan <issue>` _(planned)_                               | Run the Planning workflow on an issue (`owner/repo#123`, or `123` inside a known clone) |
+| `cog resume <run_id>` _(planned)_                            | Resume a paused run with a decision or answer                                           |
+| `cog runs list` / `cog runs show <run_id>` _(planned)_       | Browse runs, statuses, costs, and events                                                |
+| `cog cancel <run_id>` _(planned)_                            | Stop a run at the next safe point                                                       |
+| `cog plan export <plan_id>` _(planned)_                      | Write a plan into a target repo (`.cog/plans/`), optionally as a commit or PR           |
+| `cog repo add <url-or-path>` / `cog repo list` _(planned)_   | Manage managed clones                                                                   |
+| `cog index build <repo>` / `cog index query ...` _(planned)_ | Build and debug the index by hand                                                       |
+| `cog config show [--explain]` _(planned)_                    | Show resolved config and which layer set each value                                     |
+| `cog doctor` _(planned)_                                     | Check environment and credentials (below)                                               |
+| `cog eval run` _(planned)_                                   | Run evaluations, such as the context-recall eval                                        |
+| `cog takeover <run_id>` _(planned, Implementation)_          | Open an interactive agent session in a task's worktree                                  |
+| `cog gc` _(planned)_                                         | Prune old runs, blobs, indexes, and orphaned worktrees                                  |
 
 Global flags: `--json`, `--non-interactive`, `--offline` (replay from the local mirror), `--config <path>`, `--verbose`.
 
@@ -53,13 +53,13 @@ Checks the things that most often cause confusing failures:
 
 A run is in exactly one state.
 
-| State | Meaning |
-|---|---|
-| `running` | Nodes are executing |
-| `paused:<reason>` | Waiting for a human (reasons in Section 4) |
-| `succeeded` | Finished; outputs persisted |
-| `failed` | Stopped by an unrecoverable fault; details in the event log |
-| `cancelled` | Stopped by `cog cancel` |
+| State             | Meaning                                                     |
+| ----------------- | ----------------------------------------------------------- |
+| `running`         | Nodes are executing                                         |
+| `paused:<reason>` | Waiting for a human (reasons in Section 4)                  |
+| `succeeded`       | Finished; outputs persisted                                 |
+| `failed`          | Stopped by an unrecoverable fault; details in the event log |
+| `cancelled`       | Stopped by `cog cancel`                                     |
 
 ```mermaid
 stateDiagram-v2
@@ -99,13 +99,13 @@ sequenceDiagram
 
 ## 4. Pauses (interrupts)
 
-| Reason | Source node (Planning) | Payload | Valid responses |
-|---|---|---|---|
-| `clarify` | 14 `ask_human` | The question(s) and why they matter | `--answer "..."`, or `--proceed` to continue with assumptions recorded |
-| `review` | 21 `hitl_review` | Plan id, HTML path, warnings, unresolved gaps | `approve`, `edit` (edited plan JSON), `reject` with feedback |
-| `validation_failed` | 18 `plan_validator` after retries | Validator errors | Edit the plan, give feedback, or abort |
-| `budget` | any | Which cap was reached and the estimate | Raise the cap, continue, or abort |
-| `takeover` *(Implementation)* | executor escalation | Task packet and failure summary | Take over, retry on a higher tier, or abort |
+| Reason                        | Source node (Planning)            | Payload                                       | Valid responses                                                        |
+| ----------------------------- | --------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------- |
+| `clarify`                     | 14 `ask_human`                    | The question(s) and why they matter           | `--answer "..."`, or `--proceed` to continue with assumptions recorded |
+| `review`                      | 21 `hitl_review`                  | Plan id, HTML path, warnings, unresolved gaps | `approve`, `edit` (edited plan JSON), `reject` with feedback           |
+| `validation_failed`           | 18 `plan_validator` after retries | Validator errors                              | Edit the plan, give feedback, or abort                                 |
+| `budget`                      | any                               | Which cap was reached and the estimate        | Raise the cap, continue, or abort                                      |
+| `takeover` _(Implementation)_ | executor escalation               | Task packet and failure summary               | Take over, retry on a higher tier, or abort                            |
 
 Rules:
 
@@ -142,12 +142,12 @@ Rules:
 
 All call the same service layer, so none changes the workflows.
 
-| Interface | Purpose | Notes |
-|---|---|---|
-| Local web review page | Richer plan review and editing | Must auto-escape all rendered content |
-| MCP server | Let other agents call cog's tools or start runs | Optional |
-| Webhook / GitHub trigger | Start runs from issue events | Fits scale-up ([ADR-0013](../decisions/0013-scale-seams-not-scale-features.md)) |
-| "Ask about this run" chat | Optional convenience | Not part of the core model |
+| Interface                 | Purpose                                         | Notes                                                                           |
+| ------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| Local web review page     | Richer plan review and editing                  | Must auto-escape all rendered content                                           |
+| MCP server                | Let other agents call cog's tools or start runs | Optional                                                                        |
+| Webhook / GitHub trigger  | Start runs from issue events                    | Fits scale-up ([ADR-0013](../decisions/0013-scale-seams-not-scale-features.md)) |
+| "Ask about this run" chat | Optional convenience                            | Not part of the core model                                                      |
 
 ---
 

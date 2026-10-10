@@ -20,14 +20,14 @@ The Planning workflow's first twelve nodes are deterministic, so most of the sys
 
 ## 2. Test tiers
 
-| Tier | Directory | Needs | Speed | Runs in CI |
-|---|---|---|---|---|
-| **Unit** | `tests/unit/` | Nothing | Fast | Every push |
-| **Integration** | `tests/integration/` | Real SQLite, real `git` on fixture repos, recorded GitHub responses | Medium | Every push |
-| **Graph** | `tests/graph/` | `FakeLLM`, fixture repos, temp data directory | Medium | Every push |
-| **Eval** | `tests/eval/` | Golden set, recorded data, managed clones at fixed commits | Slow | Smoke subset on push; full nightly |
-| **Live** | `tests/live/` | Real providers, CLIs, GitHub; credentials | Slow, costs money | **Never automatically** |
-| **Snapshots** | `tests/snapshots/` | Nothing | Fast | Every push |
+| Tier            | Directory            | Needs                                                               | Speed             | Runs in CI                         |
+| --------------- | -------------------- | ------------------------------------------------------------------- | ----------------- | ---------------------------------- |
+| **Unit**        | `tests/unit/`        | Nothing                                                             | Fast              | Every push                         |
+| **Integration** | `tests/integration/` | Real SQLite, real `git` on fixture repos, recorded GitHub responses | Medium            | Every push                         |
+| **Graph**       | `tests/graph/`       | `FakeLLM`, fixture repos, temp data directory                       | Medium            | Every push                         |
+| **Eval**        | `tests/eval/`        | Golden set, recorded data, managed clones at fixed commits          | Slow              | Smoke subset on push; full nightly |
+| **Live**        | `tests/live/`        | Real providers, CLIs, GitHub; credentials                           | Slow, costs money | **Never automatically**            |
+| **Snapshots**   | `tests/snapshots/`   | Nothing                                                             | Fast              | Every push                         |
 
 Markers (`live`, `eval`, `slow`) select tiers. A plain `pytest` runs unit, integration, graph, and snapshots.
 
@@ -95,20 +95,20 @@ Small synthetic repos, built by a script, one per ecosystem: **Java** (Maven wra
 
 Whole-graph runs with fakes, in a temporary data directory:
 
-| Scenario | Asserts |
-|---|---|
-| Happy path | All 22 nodes run; plan persisted; events recorded; costs `None` or consistent |
-| Retriever failure | One retriever returns `error`; run completes with a warning |
-| Insufficient issue | Pause `clarify`; resume with answer; one round only |
-| Invalid plans | Repair loop runs up to 3 times, then pauses `validation_failed` |
-| Gap resolution | Up to 2 rounds; `human_question` gaps carried to review |
-| Review decisions | Approve, edit (re-derive and re-validate; new version), reject (back to planner) |
-| **Pause and resume across a process restart** | State from the file-based checkpointer survives a new process |
-| Budget breach | Pause `budget`; resume with a raised cap |
-| Cancel | Run stops at the next safe point; no partial plan |
-| Interrupt-first | Nodes 14 and 21 perform no side effects before `interrupt()` |
-| Checkpoint round trip | A state containing every model type survives save and load |
-| **Drift** | Generated Mermaid, the node registry, and the draw.io node names agree |
+| Scenario                                      | Asserts                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Happy path                                    | All 22 nodes run; plan persisted; events recorded; costs `None` or consistent    |
+| Retriever failure                             | One retriever returns `error`; run completes with a warning                      |
+| Insufficient issue                            | Pause `clarify`; resume with answer; one round only                              |
+| Invalid plans                                 | Repair loop runs up to 3 times, then pauses `validation_failed`                  |
+| Gap resolution                                | Up to 2 rounds; `human_question` gaps carried to review                          |
+| Review decisions                              | Approve, edit (re-derive and re-validate; new version), reject (back to planner) |
+| **Pause and resume across a process restart** | State from the file-based checkpointer survives a new process                    |
+| Budget breach                                 | Pause `budget`; resume with a raised cap                                         |
+| Cancel                                        | Run stops at the next safe point; no partial plan                                |
+| Interrupt-first                               | Nodes 14 and 21 perform no side effects before `interrupt()`                     |
+| Checkpoint round trip                         | A state containing every model type survives save and load                       |
+| **Drift**                                     | Generated Mermaid, the node registry, and the draw.io node names agree           |
 
 ---
 
@@ -125,11 +125,11 @@ Whole-graph runs with fakes, in a temporary data directory:
 
 Opt-in, run on your machine, never in CI, each with a spending cap and a cost report.
 
-| Target | Questions answered |
-|---|---|
-| Each LLM provider/model (Fireworks, OpenRouter) | Does structured output work with the declared mode? Are capabilities as declared? Is usage reported? |
-| Each runner (Copilot, Antigravity, others) | Does an **unattended** run behave like an interactive one: shell, permission mode, output format, exit codes, process-tree termination? |
-| GitHub | Do the real GraphQL queries still return the fields we depend on? Rate-limit headers as expected? |
+| Target                                          | Questions answered                                                                                                                      |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Each LLM provider/model (Fireworks, OpenRouter) | Does structured output work with the declared mode? Are capabilities as declared? Is usage reported?                                    |
+| Each runner (Copilot, Antigravity, others)      | Does an **unattended** run behave like an interactive one: shell, permission mode, output format, exit codes, process-tree termination? |
+| GitHub                                          | Do the real GraphQL queries still return the fields we depend on? Rate-limit headers as expected?                                       |
 
 Results are recorded with tool versions, and a generated "verified versions" table can be published in the docs. A failing live test does not fail CI; it flags an adapter for attention. This is how the verification items for providers get settled.
 
@@ -137,20 +137,20 @@ Results are recorded with tool versions, and a generated "verified versions" tab
 
 ## 9. Evaluation: context recall
 
-Tests check that code matches its contract. **Evaluation** checks that the system is *good*. The primary eval needs no LLM.
+Tests check that code matches its contract. **Evaluation** checks that the system is _good_. The primary eval needs no LLM.
 
 ### What it measures
 
 Take historical issues that have a merged closing PR. Run nodes 1–12 as of the PR's base commit. Measure what fraction of the files (and, ideally, symbols) the real PR touched appeared in the packed context.
 
-| Metric | Definition |
-|---|---|
-| **Recall (packed)** | Touched files present in the packed context ÷ touched files |
-| **Recall by tier** | The same, split by which tier surfaced each file |
-| **Candidate recall and rank** | Recall in the pre-budget candidate list, and mean reciprocal rank of the first touched file |
-| **Precision** | Packed items the PR touched (or the later plan cites) ÷ packed items |
-| **Per-retriever contribution** | **Ablation:** rerun with one retriever removed and measure the drop |
-| **Cost** | Tokens in the packed context, time per node, GitHub API calls |
+| Metric                         | Definition                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------- |
+| **Recall (packed)**            | Touched files present in the packed context ÷ touched files                                 |
+| **Recall by tier**             | The same, split by which tier surfaced each file                                            |
+| **Candidate recall and rank**  | Recall in the pre-budget candidate list, and mean reciprocal rank of the first touched file |
+| **Precision**                  | Packed items the PR touched (or the later plan cites) ÷ packed items                        |
+| **Per-retriever contribution** | **Ablation:** rerun with one retriever removed and measure the drop                         |
+| **Cost**                       | Tokens in the packed context, time per node, GitHub API calls                               |
 
 ### Building the golden set
 
@@ -185,14 +185,14 @@ Use it to tune retrievers, tiers, and budgets, and to decide whether embeddings 
 
 ## 11. Continuous integration
 
-| Job | Runs | Contents |
-|---|---|---|
-| Lint and types | Every push | ruff, pyright, import-boundary check |
-| Tests | Every push, **Windows and Linux** matrix (macOS best-effort) | Unit, integration, graph, snapshots |
-| Docs | Every push | Strict docs build, link check, executed examples, schema diff check |
-| Eval smoke | Every push | Small subset, replay only |
-| Eval full | Nightly | Whole golden set, baseline comparison |
-| Live | Manual | Contract tests on your machine |
+| Job            | Runs                                                         | Contents                                                            |
+| -------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Lint and types | Every push                                                   | ruff, pyright, import-boundary check                                |
+| Tests          | Every push, **Windows and Linux** matrix (macOS best-effort) | Unit, integration, graph, snapshots                                 |
+| Docs           | Every push                                                   | Strict docs build, link check, executed examples, schema diff check |
+| Eval smoke     | Every push                                                   | Small subset, replay only                                           |
+| Eval full      | Nightly                                                      | Whole golden set, baseline comparison                               |
+| Live           | Manual                                                       | Contract tests on your machine                                      |
 
 Keep the default job fast. Targets are set from measurements in Phase 1.
 

@@ -8,7 +8,7 @@ The planned file tree of the `code-on-graph` repository. **No code exists yet.**
 
 ## 1. Top level
 
-```
+```text
 code-on-graph/
   README.md                  what it is, status, how to read the docs
   AGENTS.md                  contributor and coding-agent guidance
@@ -31,27 +31,27 @@ code-on-graph/
 
 Dependencies point downward in this table (a package may import those listed below it).
 
-| Package | Purpose | May import |
-|---|---|---|
-| `interfaces/cli/` | Typer app; one module per command group (`plan`, `runs`, `repo`, `index`, `config`, `doctor`, `eval`, `gc`) | workflows, services, runtime, core |
-| `workflows/planning/` | Graph factory, `nodes/` (one module per node), `prompts/`, routing functions, state definition | services and providers (interfaces only), runtime, core |
-| `workflows/implementation/` | Later | same |
-| `services/github/` | HTTP client, GraphQL queries, cache, rate-limit handling, issue/PR mirror sync | runtime, core |
-| `services/git/` | Managed clones, `show`/`log`/`blame` helpers, worktrees (later) | runtime, core |
-| `services/index/` | Index build and query; per-language support (Java, TypeScript, Python first) | runtime, core |
-| `services/retrieval/` | The retrievers (`code`, `linked_prs`, `related_issues`, `repo_conventions`, `related_prs`, `docs`) and the context packer | index, github, git, runtime, core |
-| `services/artifacts/` | Blob store, `PlanStore`, `RunStore`, `ArtifactStore` | runtime, core |
-| `services/render/` | Auto-escaping templates and plan HTML | core |
-| `services/tools/` | Typed tools exposed to LLMs (read-only first; edit tools later), each passing through policy | policy, runtime, core |
-| `providers/llm/` | `LLMClient` interface, tier router, OpenAI-compatible adapter, `FakeLLM`, record/replay | runtime, core |
-| `providers/agents/` | `AgentRunner` interface, `NativeRunner`, Copilot, Antigravity, Claude runners, `FakeRunner` | llm, execution, runtime, core |
-| `providers/execution/` | `ExecutionEnvironment`: `LocalProcess`, `Wsl`, `Container` | runtime, core |
-| `runtime/` | Node decorator, graph helpers, dependency container, run context, budgets, run registry | core |
-| `config/` | Settings models, layering, tier mapping, trust-on-first-use | core |
-| `policy/` | Path deny-list, command allow-list, redaction, egress rules | core |
-| `telemetry/` | Event store, structured logging, OpenTelemetry-shaped events | core |
-| `eval/` | Golden-set tooling and the context-recall eval runner | services, core |
-| `core/` | Pydantic domain models (`Reference`, `ContextItem`, `Plan`, `Task`, ...), status types, errors, ids | nothing in the project |
+| Package                     | Purpose                                                                                                                   | May import                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `interfaces/cli/`           | Typer app; one module per command group (`plan`, `runs`, `repo`, `index`, `config`, `doctor`, `eval`, `gc`)               | workflows, services, runtime, core                      |
+| `workflows/planning/`       | Graph factory, `nodes/` (one module per node), `prompts/`, routing functions, state definition                            | services and providers (interfaces only), runtime, core |
+| `workflows/implementation/` | Later                                                                                                                     | same                                                    |
+| `services/github/`          | HTTP client, GraphQL queries, cache, rate-limit handling, issue/PR mirror sync                                            | runtime, core                                           |
+| `services/git/`             | Managed clones, `show`/`log`/`blame` helpers, worktrees (later)                                                           | runtime, core                                           |
+| `services/index/`           | Index build and query; per-language support (Java, TypeScript, Python first)                                              | runtime, core                                           |
+| `services/retrieval/`       | The retrievers (`code`, `linked_prs`, `related_issues`, `repo_conventions`, `related_prs`, `docs`) and the context packer | index, github, git, runtime, core                       |
+| `services/artifacts/`       | Blob store, `PlanStore`, `RunStore`, `ArtifactStore`                                                                      | runtime, core                                           |
+| `services/render/`          | Auto-escaping templates and plan HTML                                                                                     | core                                                    |
+| `services/tools/`           | Typed tools exposed to LLMs (read-only first; edit tools later), each passing through policy                              | policy, runtime, core                                   |
+| `providers/llm/`            | `LLMClient` interface, tier router, OpenAI-compatible adapter, `FakeLLM`, record/replay                                   | runtime, core                                           |
+| `providers/agents/`         | `AgentRunner` interface, `NativeRunner`, Copilot, Antigravity, Claude runners, `FakeRunner`                               | llm, execution, runtime, core                           |
+| `providers/execution/`      | `ExecutionEnvironment`: `LocalProcess`, `Wsl`, `Container`                                                                | runtime, core                                           |
+| `runtime/`                  | Node decorator, graph helpers, dependency container, run context, budgets, run registry                                   | core                                                    |
+| `config/`                   | Settings models, layering, tier mapping, trust-on-first-use                                                               | core                                                    |
+| `policy/`                   | Path deny-list, command allow-list, redaction, egress rules                                                               | core                                                    |
+| `telemetry/`                | Event store, structured logging, OpenTelemetry-shaped events                                                              | core                                                    |
+| `eval/`                     | Golden-set tooling and the context-recall eval runner                                                                     | services, core                                          |
+| `core/`                     | Pydantic domain models (`Reference`, `ContextItem`, `Plan`, `Task`, ...), status types, errors, ids                       | nothing in the project                                  |
 
 Notes:
 
@@ -64,7 +64,7 @@ Notes:
 
 ## 3. Tests: `tests/`
 
-```
+```text
 tests/
   unit/            fast, offline; routing functions, extractors, validators, policy
   integration/     real SQLite, real git on fixture repos, recorded GitHub responses
@@ -81,7 +81,7 @@ Live tests run on the owner's machine early, for each runner, to confirm unatten
 
 ## 4. Documentation: `docs/`
 
-```
+```text
 docs/
   index.md                                 map and reading order
   roadmap.md                               phases, exit criteria, verification log, risks
@@ -125,7 +125,7 @@ Diátaxis is how the folders are sorted (explanation, reference, how-to, tutoria
 
 Nothing, unless you ask:
 
-```
+```text
 <target-repo>/.cog/
   config.toml              optional, team-shared repo facts (read by cog, never written without request)
   plans/<issue>/v<N>/...   only after `cog plan export`

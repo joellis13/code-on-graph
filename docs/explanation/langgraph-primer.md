@@ -18,27 +18,27 @@ It also runs independent nodes **in parallel** and merges their results.
 
 cog uses it because the Planning workflow needs exactly these: parallel retrievers, bounded loops, and human review pauses, with every step inspectable and testable without an LLM. See [ADR-0003](../decisions/0003-langgraph-orchestration-and-state.md).
 
-LangGraph can also run *agents* where an LLM chooses the next step. cog deliberately uses it as a **workflow engine**: code defines the path, and LLM calls happen inside specific nodes.
+LangGraph can also run _agents_ where an LLM chooses the next step. cog deliberately uses it as a **workflow engine**: code defines the path, and LLM calls happen inside specific nodes.
 
 ---
 
 ## 2. Vocabulary
 
-| Term | Meaning | In cog |
-|---|---|---|
-| **State** | The typed dictionary flowing through a run | A TypedDict of Pydantic models; big payloads are referenced by id |
-| **Node** | A function that reads state and returns a *partial* update | Every numbered step in the Planning diagram |
-| **Edge** | "After A, run B" | Static arrows |
-| **Conditional edge** | A routing function picks the next node from state | The yellow diamonds (`sufficient?`, `valid?`) |
-| **Reducer** | A per-key merge rule for when several nodes write the same key | `operator.add` on `context_items` |
-| **Superstep** | One round: all nodes that are ready run (in parallel), then their updates are merged | The retrievers form one superstep |
-| **Checkpointer** | Saves state at superstep boundaries | SQLite file in the data directory |
-| **Thread** | The identity of one run's checkpoint history | `thread_id = run_id` |
-| **Interrupt** | A node pauses the run and surfaces a payload | `ask_human`, `hitl_review` |
-| **Command** | How you resume (or redirect) a paused run | `Command(resume=...)` |
-| **Subgraph** | A whole graph used as one node | Optional packaging for a retriever |
-| **`Send`** | Launch a *dynamic* number of parallel node calls | One lookup per extracted reference |
-| **Compile** | Turn the graph definition into a runnable object | Done once per workflow by a factory |
+| Term                 | Meaning                                                                              | In cog                                                            |
+| -------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| **State**            | The typed dictionary flowing through a run                                           | A TypedDict of Pydantic models; big payloads are referenced by id |
+| **Node**             | A function that reads state and returns a _partial_ update                           | Every numbered step in the Planning diagram                       |
+| **Edge**             | "After A, run B"                                                                     | Static arrows                                                     |
+| **Conditional edge** | A routing function picks the next node from state                                    | The yellow diamonds (`sufficient?`, `valid?`)                     |
+| **Reducer**          | A per-key merge rule for when several nodes write the same key                       | `operator.add` on `context_items`                                 |
+| **Superstep**        | One round: all nodes that are ready run (in parallel), then their updates are merged | The retrievers form one superstep                                 |
+| **Checkpointer**     | Saves state at superstep boundaries                                                  | SQLite file in the data directory                                 |
+| **Thread**           | The identity of one run's checkpoint history                                         | `thread_id = run_id`                                              |
+| **Interrupt**        | A node pauses the run and surfaces a payload                                         | `ask_human`, `hitl_review`                                        |
+| **Command**          | How you resume (or redirect) a paused run                                            | `Command(resume=...)`                                             |
+| **Subgraph**         | A whole graph used as one node                                                       | Optional packaging for a retriever                                |
+| **`Send`**           | Launch a _dynamic_ number of parallel node calls                                     | One lookup per extracted reference                                |
+| **Compile**          | Turn the graph definition into a runnable object                                     | Done once per workflow by a factory                               |
 
 ---
 
@@ -57,17 +57,17 @@ If you know Redux, you already have most of the intuition. The comparison is fai
 
 1. **Control flow lives in the graph.** In Redux, any action can fire at any time and reducers do not decide "what happens next." In LangGraph, edges say exactly what runs next. It is closer to a **state machine (like XState) plus a store**.
 2. **Nodes do the work, including I/O.** Redux reducers must be pure, with side effects in thunks or sagas. A LangGraph node is closer to a **thunk and a reducer in one**: it performs I/O and returns a state update. LangGraph's "reducers" are only per-key merge rules.
-3. **Nobody dispatches actions.** You *invoke* the graph with an input. It runs until it finishes or pauses at an interrupt, then returns. Resuming is an explicit act.
+3. **Nobody dispatches actions.** You _invoke_ the graph with an input. It runs until it finishes or pauses at an interrupt, then returns. Resuming is an explicit act.
 4. **Persistence and parallelism are built in.** State survives process exit, and independent nodes run concurrently within a superstep.
 
-| Redux | LangGraph |
-|---|---|
-| Store state | State |
-| Action | Not used; a node's returned update plays a similar role |
-| Reducer `(state, action) → state` | Per-key reducer (merge rule), and the node function itself |
-| Thunk / saga (side effects) | The node (does I/O) |
-| Middleware / DevTools | Checkpointer, event log, LangGraph Studio **(verify)** |
-| "What happens next" is implicit in your code | Edges and conditional edges |
+| Redux                                        | LangGraph                                                  |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| Store state                                  | State                                                      |
+| Action                                       | Not used; a node's returned update plays a similar role    |
+| Reducer `(state, action) → state`            | Per-key reducer (merge rule), and the node function itself |
+| Thunk / saga (side effects)                  | The node (does I/O)                                        |
+| Middleware / DevTools                        | Checkpointer, event log, LangGraph Studio **(verify)**     |
+| "What happens next" is implicit in your code | Edges and conditional edges                                |
 
 ```mermaid
 flowchart LR
@@ -188,14 +188,14 @@ Conventions, all recorded in [ADR-0003](../decisions/0003-langgraph-orchestratio
 
 ## 7. Common mistakes to avoid
 
-| Mistake | Why it hurts | Instead |
-|---|---|---|
-| Side effects before `interrupt()` | Runs twice on resume | Prepare / review / apply split |
-| Parallel writes to one key without a reducer | Conflicting updates | Declare a reducer |
-| Putting large blobs in state | Slow, bloated checkpoints | Store in blobs, keep ids |
-| Raising exceptions for "no results" | Aborts parallel branches | Return a status |
-| Letting an LLM choose loop counts | Unbounded cost | Fixed limits, escalate to a human |
-| Assuming checkpointed models deserialize unchanged after a refactor | Resume breaks | Round-trip test; version schemas |
+| Mistake                                                             | Why it hurts              | Instead                           |
+| ------------------------------------------------------------------- | ------------------------- | --------------------------------- |
+| Side effects before `interrupt()`                                   | Runs twice on resume      | Prepare / review / apply split    |
+| Parallel writes to one key without a reducer                        | Conflicting updates       | Declare a reducer                 |
+| Putting large blobs in state                                        | Slow, bloated checkpoints | Store in blobs, keep ids          |
+| Raising exceptions for "no results"                                 | Aborts parallel branches  | Return a status                   |
+| Letting an LLM choose loop counts                                   | Unbounded cost            | Fixed limits, escalate to a human |
+| Assuming checkpointed models deserialize unchanged after a refactor | Resume breaks             | Round-trip test; version schemas  |
 
 ---
 

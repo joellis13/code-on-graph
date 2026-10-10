@@ -19,12 +19,12 @@ Tool facts were checked in Round 1 (2026-10-06). Items marked **(verify)** are t
 
 Diátaxis sorts documents into four types by what the reader needs. It is a way to organize files, not a storage system; everything is Markdown (plus draw.io) in the repo.
 
-| Type | Reader's need | Where | Mostly |
-|---|---|---|---|
-| **Tutorials** | Learn by doing | `docs/tutorials/` | Hand-written, with generated example output |
-| **How-to guides** | Complete a task | `docs/how-to/` | Hand-written, tested |
-| **Reference** | Look something up | `docs/reference/`, workflow references | **Generated** where possible |
-| **Explanation** | Understand why | `docs/explanation/`, `docs/decisions/` | Hand-written |
+| Type              | Reader's need     | Where                                  | Mostly                                      |
+| ----------------- | ----------------- | -------------------------------------- | ------------------------------------------- |
+| **Tutorials**     | Learn by doing    | `docs/tutorials/`                      | Hand-written, with generated example output |
+| **How-to guides** | Complete a task   | `docs/how-to/`                         | Hand-written, tested                        |
+| **Reference**     | Look something up | `docs/reference/`, workflow references | **Generated** where possible                |
+| **Explanation**   | Understand why    | `docs/explanation/`, `docs/decisions/` | Hand-written                                |
 
 Product and usage documentation is how-to and tutorial content; feature descriptions are explanation. Tutorials and how-to pages start when the CLI exists.
 
@@ -32,19 +32,19 @@ Product and usage documentation is how-to and tutorial content; feature descript
 
 ## 3. What is generated and what is written
 
-| Content | Source of truth | Generator | Committed? |
-|---|---|---|---|
-| Node reference tables | Node registry and templated node docstrings | `scripts/gen_docs.py` | No (built into the site) |
-| Graph diagrams (Mermaid) | Compiled LangGraph graph | `get_graph()` Mermaid export | No |
-| **Diagram drift check** | Registry vs generated graph vs draw.io node names | A test | n/a |
-| Config reference | The settings models (names, types, defaults, env vars) | Generator | No |
-| CLI reference | The Typer app | Typer docs tooling or `--help` snapshots **(verify)** | No (snapshots committed as tests) |
-| **Contract JSON Schemas** (`Plan`, `Task`, ...) | Pydantic models | Schema export | **Yes**, with a check that a change requires a `schema_version` bump |
-| API reference | Docstrings | A docstring renderer, chosen by the site-tool spike | No |
-| ADR index table | ADR files | Generator (optional) | The index file stays committed |
-| Changelog | Conventional commits | A changelog tool **(verify choice)** | Yes |
-| Usage examples and terminal output | Real runs against fixture repos with `FakeLLM` | Executed docs | Output regenerated in CI |
-| Concepts, rationale, ADRs, workflow design | Human | n/a | Yes |
+| Content                                         | Source of truth                                        | Generator                                             | Committed?                                                           |
+| ----------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Node reference tables                           | Node registry and templated node docstrings            | `scripts/gen_docs.py`                                 | No (built into the site)                                             |
+| Graph diagrams (Mermaid)                        | Compiled LangGraph graph                               | `get_graph()` Mermaid export                          | No                                                                   |
+| **Diagram drift check**                         | Registry vs generated graph vs draw.io node names      | A test                                                | n/a                                                                  |
+| Config reference                                | The settings models (names, types, defaults, env vars) | Generator                                             | No                                                                   |
+| CLI reference                                   | The Typer app                                          | Typer docs tooling or `--help` snapshots **(verify)** | No (snapshots committed as tests)                                    |
+| **Contract JSON Schemas** (`Plan`, `Task`, ...) | Pydantic models                                        | Schema export                                         | **Yes**, with a check that a change requires a `schema_version` bump |
+| API reference                                   | Docstrings                                             | A docstring renderer, chosen by the site-tool spike   | No                                                                   |
+| ADR index table                                 | ADR files                                              | Generator (optional)                                  | The index file stays committed                                       |
+| Changelog                                       | Conventional commits                                   | A changelog tool **(verify choice)**                  | Yes                                                                  |
+| Usage examples and terminal output              | Real runs against fixture repos with `FakeLLM`         | Executed docs                                         | Output regenerated in CI                                             |
+| Concepts, rationale, ADRs, workflow design      | Human                                                  | n/a                                                   | Yes                                                                  |
 
 The generation script emits **plain Markdown**, so the site generator is swappable ([ADR-0010](../decisions/0010-documentation-strategy-and-tooling.md)).
 
@@ -86,12 +86,12 @@ flowchart LR
 
 Criteria: Markdown and Mermaid support, search, a strict mode that fails on broken links, a path to API reference from Python docstrings, a Windows-friendly build, speed, and low maintenance risk.
 
-| Candidate | Status (as researched in Round 1) | Role |
-|---|---|---|
-| **Zensical** | From the team behind Material for MkDocs; pre-1.0; installs with `uv`; supports Mermaid; docstring-based API reference through mkdocstrings is preliminary | **Try first** |
-| **Material for MkDocs + mkdocstrings** | Material is in maintenance mode, with fixes planned for a limited period; mkdocstrings maintained at least through the end of 2026 | Fallback; pinned versions |
-| **Sphinx + MyST** | Mature; strongest Python autodoc | Fallback if the API reference story fails |
-| Docusaurus | Capable, but adds a Node toolchain and has no native Python API docs | Not chosen |
+| Candidate                              | Status (as researched in Round 1)                                                                                                                          | Role                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **Zensical**                           | From the team behind Material for MkDocs; pre-1.0; installs with `uv`; supports Mermaid; docstring-based API reference through mkdocstrings is preliminary | **Try first**                             |
+| **Material for MkDocs + mkdocstrings** | Material is in maintenance mode, with fixes planned for a limited period; mkdocstrings maintained at least through the end of 2026                         | Fallback; pinned versions                 |
+| **Sphinx + MyST**                      | Mature; strongest Python autodoc                                                                                                                           | Fallback if the API reference story fails |
+| Docusaurus                             | Capable, but adds a Node toolchain and has no native Python API docs                                                                                       | Not chosen                                |
 
 **Spike (Phase 1, about an hour):** build a stub site containing one Markdown page, one Mermaid diagram, one generated table, and one API-reference page; run it on Windows and Linux; run a strict build with a deliberate broken link. Pass if all of that works. The result is recorded as an ADR, and because generators emit plain Markdown, switching tools later costs little.
 
@@ -105,7 +105,7 @@ Criteria: Markdown and Mermaid support, search, a strict mode that fails on brok
 - CLI help snapshots and contract-schema diff check ([Testing and evaluation](testing-and-evaluation.md)).
 - Drift test (registry, graph, draw.io).
 - Optional spell and style checks; an American English check is possible **(verify tools)**.
-- A pull-request checklist item: "Docs updated, or not needed because ___."
+- A pull-request checklist item: "Docs updated, or not needed because \_\_\_."
 
 ---
 
@@ -133,4 +133,4 @@ Rule: **terminal output in usage docs is captured, not typed.** A script runs th
 - Which site tool passes the spike.
 - How terminal transcripts are captured and normalized across Windows and Linux (line endings, paths).
 - Whether to publish a hosted site (for example, GitHub Pages) or keep it local for now.
-- Changelog tool and commit-message convention, which must respect ADR-0014: the *harness's own* repo may choose a convention, but it must not impose one on target repos.
+- Changelog tool and commit-message convention, which must respect ADR-0014: the _harness's own_ repo may choose a convention, but it must not impose one on target repos.
