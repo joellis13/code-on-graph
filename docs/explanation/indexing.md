@@ -3,7 +3,7 @@
 **Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Used by:** Planning nodes 1b (builds it), 5, 6, 9, 10, 11, 16b, 18 · **Decision:** [ADR-0017](../decisions/0017-index-design.md)
 
-Facts about third-party packages were checked on 2026-10-06. Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
+Facts about third-party packages were checked on 2026-10-06. Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#4-verification-log).
 
 ---
 
@@ -113,9 +113,10 @@ Issue text and code rarely use the same tokens: an issue says "invoice total" an
 
 Error strings need exact matches, which a word-oriented FTS index handles poorly. v1 options, to be settled by the recall eval:
 
-1. An FTS5 table with the trigram tokenizer for substring matching (requires a recent SQLite) **(verify)**.
-2. A bounded literal scan over chunk text.
-3. ripgrep over an exported temporary tree. This adds a tool and a materialization step because reads come from git objects, so it is included only if (1) and (2) measurably miss **(verify)**.
+1. **`git grep` at `base_sha`** (`git grep -F -e <string> <base_sha>`). It searches the commit's objects directly, needs no working tree and no extra tool, and is already the thin index's lexical fallback in Phase 1. Its speed on large repos is the thing to measure.
+2. An FTS5 table with the trigram tokenizer for substring matching (requires a recent SQLite) **(verify)**.
+3. A bounded literal scan over chunk text.
+4. ripgrep over an exported temporary tree. This adds a tool and a materialization step because reads come from git objects, so it is included only if (1) to (3) measurably miss **(verify)**.
 
 ---
 

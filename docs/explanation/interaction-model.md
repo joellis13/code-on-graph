@@ -19,23 +19,24 @@ How people use Code-OG: a command-line tool, no chat window. Commands marked _(p
 
 ## 2. Commands
 
-| Command                                                      | Purpose                                                                                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `cog plan <issue>` _(planned)_                               | Run the Planning workflow on an issue (`owner/repo#123`, or `123` inside a known clone)                                  |
-| `cog resume <run_id>` _(planned)_                            | Resume a paused run with a decision or answer                                                                            |
-| `cog runs list` / `cog runs show <run_id>` _(planned)_       | Browse runs, statuses, costs, and events                                                                                 |
-| `cog cancel <run_id>` _(planned)_                            | Stop a run at the next safe point                                                                                        |
-| `cog plan export <plan_id>` _(planned)_                      | Write a plan into a target repo (`.cog/plans/`), optionally as a commit or PR                                            |
-| `cog repo add <url-or-path>` / `cog repo list` _(planned)_   | Manage managed clones. `add` clones, runs the bounded first issue/PR mirror sync, and shows the discovered command table |
-| `cog repo commands <repo>` _(planned)_                       | Show the resolved command table, where each entry came from, how confident it is, and which command ids are missing      |
-| `cog repo sync <repo>` _(planned)_                           | Fetch the clone and re-run the bounded mirror sync, with progress                                                        |
-| `cog index build <repo>` / `cog index query ...` _(planned)_ | Build and debug the index by hand                                                                                        |
-| `cog config show [--explain]` _(planned)_                    | Show resolved config and which layer set each value                                                                      |
-| `cog doctor` _(planned)_                                     | Check environment and credentials (below)                                                                                |
-| `cog eval run` _(planned)_                                   | Run evaluations, such as the context-recall eval                                                                         |
-| `cog takeover <run_id>` _(planned, Implementation)_          | Open an interactive agent session in a task's worktree                                                                   |
-| `cog backup` _(planned)_                                     | Copy plans and a consistent snapshot of `cog.db` to the configured backup directory                                      |
-| `cog gc` _(planned)_                                         | Prune old runs, blobs, indexes, and orphaned worktrees                                                                   |
+| Command                                                                          | Purpose                                                                                                                                         |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cog plan <issue>` _(planned)_                                                   | Run the Planning workflow on an issue (`owner/repo#123`, or `123` inside a known clone)                                                         |
+| `cog resume <run_id>` _(planned)_                                                | Resume a paused run with a decision or answer                                                                                                   |
+| `cog runs list` / `cog runs show <run_id>` _(planned)_                           | Browse runs, statuses, costs, and events                                                                                                        |
+| `cog cancel <run_id>` _(planned)_                                                | Stop a run at the next safe point                                                                                                               |
+| `cog plan export <plan_id>` _(planned)_                                          | Write a plan into a target repo (`.cog/plans/`), optionally as a commit or PR                                                                   |
+| `cog repo add <url-or-path>` / `cog repo list` _(planned)_                       | Manage managed clones. `add` clones, runs the bounded first issue/PR mirror sync, and shows the discovered command table                        |
+| `cog repo commands <repo>` _(planned)_                                           | Show the resolved command table, where each entry came from, how confident it is, and which command ids are missing                             |
+| `cog repo sync <repo>` _(planned)_                                               | Fetch the clone and re-run the bounded mirror sync, with progress                                                                               |
+| `cog repo trust <repo>` _(planned)_                                              | Review and approve the commands in a repo's own `.cog/config.toml` (trust on first use; [Policy and sandbox](policy-and-sandbox.md), Section 6) |
+| `cog index build <repo>` / `cog index query ...` / `cog index stats` _(planned)_ | Build, query, and inspect the index by hand ([Indexing](indexing.md), Section 9)                                                                |
+| `cog config show [--explain]` _(planned)_                                        | Show resolved config and which layer set each value                                                                                             |
+| `cog doctor` _(planned)_                                                         | Check environment and credentials (below)                                                                                                       |
+| `cog eval run` _(planned)_                                                       | Run evaluations, such as the context-recall eval                                                                                                |
+| `cog takeover <run_id>` _(planned, Implementation)_                              | Open an interactive agent session in a task's worktree                                                                                          |
+| `cog backup` _(planned)_                                                         | Copy plans and a consistent snapshot of `cog.db` to the configured backup directory                                                             |
+| `cog gc` _(planned)_                                                             | Prune old runs, blobs, indexes, and orphaned worktrees                                                                                          |
 
 Global flags: `--json`, `--non-interactive`, `--offline` (replay from the local mirror), `--config <path>`, `--verbose`.
 

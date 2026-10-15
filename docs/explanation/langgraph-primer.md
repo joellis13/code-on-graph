@@ -1,6 +1,6 @@
 # LangGraph Primer
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13 · **Audience:** someone new to LangGraph (including readers who know Redux)
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15 · **Audience:** someone new to LangGraph (including readers who know Redux)
 
 This page explains LangGraph well enough to read the Planning workflow reference and to build nodes for it. Items marked **(verify)** depend on library behavior that must be checked against current LangGraph docs before implementation. Code here is illustrative, not project code.
 
@@ -30,7 +30,7 @@ LangGraph can also run _agents_ where an LLM chooses the next step. cog delibera
 | **Node**             | A function that reads state and returns a _partial_ update                           | Every numbered step in the Planning diagram                       |
 | **Edge**             | "After A, run B"                                                                     | Static arrows                                                     |
 | **Conditional edge** | A routing function picks the next node from state                                    | The yellow diamonds (`sufficient?`, `valid?`)                     |
-| **Reducer**          | A per-key merge rule for when several nodes write the same key                       | `operator.add` on `context_items`                                 |
+| **Reducer**          | A per-key merge rule for when several nodes write the same key                       | `operator.add` on `retriever_refs`                                |
 | **Superstep**        | One round: all nodes that are ready run (in parallel), then their updates are merged | The retrievers form one superstep                                 |
 | **Checkpointer**     | Saves state at superstep boundaries                                                  | SQLite file in the data directory                                 |
 | **Thread**           | The identity of one run's checkpoint history                                         | `thread_id = run_id`                                              |
@@ -106,7 +106,7 @@ A run is a series of supersteps:
 
 ### Why reducers matter: the retriever fan-out
 
-In Planning, four retrievers run in parallel and all add to the same list of context items. Without a merge rule, parallel writes to one key conflict. With `Annotated[list[ContextItem], operator.add]`, LangGraph concatenates them.
+In Planning, four retrievers run in parallel and all write to the same state key. Without a merge rule, parallel writes to one key conflict. With `Annotated[list[RetrieverRef], operator.add]`, LangGraph concatenates them. Each retriever stores its full result (the context items) in the blob store and writes only a small `RetrieverRef` (status, counts, and the result's hash) to state, so checkpoints stay small ([Planning reference](../workflows/planning/reference.md), Section 3).
 
 ```mermaid
 flowchart TD

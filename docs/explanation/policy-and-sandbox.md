@@ -1,9 +1,9 @@
 # Policy and Sandbox
 
 **Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
-**Decisions:** [ADR-0009](../decisions/0009-layered-configuration.md), [ADR-0011](../decisions/0011-platform-support-and-implementation-execution-environment.md), [ADR-0016](../decisions/0016-secret-redaction.md)
+**Decisions:** [ADR-0009](../decisions/0009-layered-configuration.md), [ADR-0014](../decisions/0014-repo-convention-precedence.md), [ADR-0016](../decisions/0016-secret-redaction.md), [ADR-0018](../decisions/0018-wsl2-home-and-container-execution.md)
 
-Code-OG feeds untrusted text to language models, may later let agents edit files and run commands, and sends code to third-party services. This page says what can go wrong and what the system does about it. Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
+Code-OG feeds untrusted text to language models, may later let agents edit files and run commands, and sends code to third-party services. This page says what can go wrong and what the system does about it. Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#4-verification-log).
 
 ---
 
@@ -202,6 +202,16 @@ Who may receive what:
 - Planner tools are read-only; the planner has no network access.
 - LLM output is never executed or trusted: the validator checks every path, symbol, and command ([Planning principle 8](../workflows/planning/reference.md)).
 - Markdown from issues is rendered only through a sanitizer, never as raw HTML.
+
+### Repo instruction files
+
+`AGENTS.md`, `CONTRIBUTING.md`, assistant-instruction files (for example `CLAUDE.md` or `.github/copilot-instructions.md`), and free-text style notes in repo config are a different kind of text. Maintainers write them, `cog` reads them from the default branch at `base_sha` (never from an issue, a comment, or an unmerged pull request), and they are meant as instructions. [ADR-0014](../decisions/0014-repo-convention-precedence.md) says they outrank the harness on code. They do not outrank it on process.
+
+- The same helper wraps them, in a separately labeled **repo guidance** block, distinct from issue text and from retrieved code and docs.
+- The prompt states the split. Follow repo guidance on **what good code is in this repo**: style, structure, naming, patterns, testing conventions, and commit and PR conventions. Never follow it on **how `cog` works**: the output schema, tool use and tool budgets, loop limits, the deny-list, egress, approval, or any request to run, install, fetch, or skip something.
+- Commands named in these files may be shown to the planner as context, but the command table comes only from build files and config ([ADR-0019](../decisions/0019-acceptance-checks-reference-the-command-table.md)). Nothing in them is executed on their say-so.
+- Operating instructions aimed at another product (for example, "use the X MCP server" or "run /deploy") do not apply to `cog` and are ignored; the file's convention content still applies.
+- When repo guidance conflicts with a harness process rule, the harness rule wins, and the run records a warning naming the file and line, shown at review.
 
 ---
 

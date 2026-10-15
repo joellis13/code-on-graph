@@ -34,3 +34,7 @@ Everything the CLI does goes through a service layer that other interfaces can c
 ## Revisit when
 
 A second user or a remote deployment is planned.
+
+## Addendum (2026-10-15, Round 4a): execution seam after ADR-0018
+
+The table above lists "Local process, WSL2" as the local `ExecutionEnvironment`. [ADR-0018](0018-wsl2-home-and-container-execution.md) dropped the WSL2 implementation, because `cog` itself runs inside WSL2 on Windows, and chose a container per task for Implementation. The local implementations are now `LocalProcess` and `Container`; remote workers remain the scale implementation. The decision above is unchanged.

@@ -2,7 +2,7 @@
 
 **Type:** Workflow outline · **Status:** Draft, scoped outline only · **Last updated:** 2026-10-15
 
-This is **not a design.** It records what is known, what Planning already guarantees, and the questions to answer when Implementation is designed (Phase 6, documentation first). Nothing here is a commitment. Items marked **(verify)** are tracked in the [roadmap's verification log](../../roadmap.md#verification-log).
+This is **not a design.** It records what is known, what Planning already guarantees, and the questions to answer when Implementation is designed (Phase 6, documentation first). Nothing here is a commitment. Items marked **(verify)** are tracked in the [roadmap's verification log](../../roadmap.md#4-verification-log).
 
 ---
 
@@ -98,7 +98,7 @@ Tentative node areas: plan loading and verification, staleness check, workspace 
 **Agent runners**
 
 - `NativeRunner` design: edit format (unified diff, search-and-replace blocks, whole-file), tool set, context management, loop bounds, and how it recovers from failed edits.
-- Copilot BYOK as a stopgap and baseline: its contract test results decide how much to rely on it.
+- Copilot BYOK and Claude Code as stopgaps and baselines: their contract test results, and the Phase 3 execution trial, decide how much to rely on them.
 - How each runner receives the task packet and policy, and how its transcript and usage are normalized.
 
 **Workspace and integration**
@@ -112,6 +112,8 @@ Tentative node areas: plan loading and verification, staleness check, workspace 
 - Command semantics beyond the command table's working directory, environment, and timeout ([ADR-0019](../../decisions/0019-acceptance-checks-reference-the-command-table.md)): flaky tests, partial passes, tests that need services.
 - The escalation ladder: when to retry the same tier versus climb, and how failure evidence is passed to the next attempt.
 - Stop conditions in the packet: how they are checked and what they trigger.
+- Whether bug-fix tasks follow a **reproduce-first** pattern: the first task writes a failing test, and the executor confirms it fails before the fix and passes after. This is a process rule, not a style rule, and it closes part of the gap Planning leaves by never executing code ([How cog differs](../../explanation/how-cog-differs.md), Section 2).
+- The baseline run of the repo's gates before any change, so "no new failures" can be judged ([ADR-0014](../../decisions/0014-repo-convention-precedence.md), Round 4 addendum).
 
 **GitHub write path**
 

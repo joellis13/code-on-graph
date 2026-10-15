@@ -2,7 +2,7 @@
 
 **Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Decision:** [ADR-0018](../decisions/0018-wsl2-home-and-container-execution.md)
-Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log). Commands and settings named here are illustrative until the CLI exists.
+Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#4-verification-log). Commands and settings named here are illustrative until the CLI exists.
 
 Where `cog` runs, where its data lives, and what runs in a container. This page is the one place for platform tiers and the "what runs where" chart; other pages link here.
 

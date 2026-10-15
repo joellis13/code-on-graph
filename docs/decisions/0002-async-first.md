@@ -27,3 +27,7 @@ Most of the work is I/O: GitHub calls, git subprocesses, LLM requests, and later
 ## Revisit when
 
 Never expected. Changing this later would touch every node.
+
+## Addendum (2026-10-15, Round 4a): CPU-bound parsing
+
+The Decision above names tree-sitter parsing among the blocking work that runs in a thread pool. During index builds, parsing is CPU-bound and runs in a **process pool** instead ([Indexing](../explanation/indexing.md), Section 8). The thread-pool helper remains the one path for blocking I/O and for small, one-off parses outside an index build. The async-first decision is unchanged.

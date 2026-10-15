@@ -30,3 +30,7 @@ Code-OG (`cog`) is a Python application built around LangGraph. It needs reprodu
 ## Revisit when
 
 A second deployable (for example, a server mode or web UI) needs independent versioning.
+
+## Addendum (2026-10-15, Round 4a): platform wording
+
+The Context above calls Windows the primary platform. [ADR-0018](0018-wsl2-home-and-container-execution.md) changed that: `cog` runs natively on Linux and macOS and inside WSL2 on Windows, and native Windows is best-effort. The decision above (Python, uv, a single package, extras, `uv tool install`) is unchanged.

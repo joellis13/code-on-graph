@@ -16,7 +16,7 @@ Facts about vendors in this page were checked on **2026-10-06** and change quick
 | Who controls the loop | cog                                                                                        | The adapter (its own tools and prompts), or cog if it is `NativeRunner` |
 | Used by               | Planner, query generation, plan review, gap resolution                                     | Implementation workflow (executing task packets)                        |
 | Needs                 | Structured output, a small read-only tool budget, per-call logging, untrusted text as data | A working directory, a policy, a budget, acceptance results             |
-| Examples              | Fireworks, OpenRouter, local servers                                                       | `NativeRunner`, Copilot, Antigravity, Claude                            |
+| Examples              | Fireworks, OpenRouter, local servers                                                       | `NativeRunner`, Copilot, Antigravity, Claude Code                       |
 
 Keeping them separate is what lets Planning keep principle 8 (LLM outputs are proposals, not facts) while Implementation can still use agent products. Planning needs **no** agent CLI.
 
@@ -62,6 +62,8 @@ Rules for every provider:
 - Always validate and repair.
 - Keep per-model-family **prompt overrides**: the same system prompt rarely performs equally across models.
 
+**Claude models.** OpenRouter serves Claude models, so a Claude model can fill any role through the adapter above from Phase 1 (for example, as the cross-family reviewer). A **native Anthropic adapter** using the official `anthropic` SDK is the better route if a Claude model becomes a regular planner or reviewer, because structured outputs, prompt caching, and effort controls are exposed directly there rather than through a compatibility layer. Decide from the comparison in the verification log (V45).
+
 **Other wrappers.**
 
 - `FakeLLM`: returns canned (including deliberately invalid) outputs for tests.
@@ -82,13 +84,13 @@ Rules for every provider:
 
 ### Runners
 
-| Runner                                                   | Role                                                                                                                                                                           | Status                                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`NativeRunner`**                                       | cog's own tool-calling loop on `LLMClient`, with tools such as `read_file`, `grep`, `symbol_lookup`, `apply_patch`, and allow-listed `run_command`, all passing through policy | The intended Implementation runner, and a purpose of the project: cog owns the whole loop, with no third-party prompts nested inside its own. The hard parts are reliable edits and context management, which commercial CLIs sell; the other runners are baselines to measure it against. Built after Planning. |
-| **Copilot** (SDK or CLI)                                 | Optional runner; also a baseline to compare `NativeRunner` against                                                                                                             | See below                                                                                                                                                                                                                                                                                                        |
-| **Antigravity** (SDK or CLI)                             | Optional runner, mainly where models are cheaper through the owner's subscription                                                                                              | See below                                                                                                                                                                                                                                                                                                        |
-| **Claude** (API key, or unmodified CLI for personal use) | Optional                                                                                                                                                                       | See terms below                                                                                                                                                                                                                                                                                                  |
-| **`FakeRunner`**                                         | Tests                                                                                                                                                                          | Planned                                                                                                                                                                                                                                                                                                          |
+| Runner                             | Role                                                                                                                                                                           | Status                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`NativeRunner`**                 | cog's own tool-calling loop on `LLMClient`, with tools such as `read_file`, `grep`, `symbol_lookup`, `apply_patch`, and allow-listed `run_command`, all passing through policy | The intended Implementation runner, and a purpose of the project: cog owns the whole loop, with no third-party prompts nested inside its own. The hard parts are reliable edits and context management, which commercial CLIs sell; the other runners are baselines to measure it against. Built after Planning. |
+| **Copilot** (SDK or CLI)           | Optional runner; also a baseline to compare `NativeRunner` against                                                                                                             | See below                                                                                                                                                                                                                                                                                                        |
+| **Antigravity** (SDK or CLI)       | Optional runner, mainly where models are cheaper through the owner's subscription                                                                                              | See below                                                                                                                                                                                                                                                                                                        |
+| **Claude Code** (CLI or Agent SDK) | Optional runner; a baseline to compare `NativeRunner` against; usable by hand for the Phase 3 execution trial                                                                  | See below                                                                                                                                                                                                                                                                                                        |
+| **`FakeRunner`**                   | Tests                                                                                                                                                                          | Planned                                                                                                                                                                                                                                                                                                          |
 
 ### Copilot
 
@@ -107,9 +109,17 @@ Rules for every provider:
 - A public forum thread asks Google whether orchestrating the official CLI headlessly from a third-party multi-agent app is permitted under the terms. **No official answer** was found in the sources read. Treat subscription-backed automation as unconfirmed.
 - The `agy` CLI replaced Gemini CLI for individual developers in mid-2026, a reminder that flags and tools churn.
 
-### Claude and terms of use
+### Claude Code
 
-Anthropic's Claude Code documentation says subscription sign-in is for ordinary use of Claude Code and native apps, developers building products or services (including with the Agent SDK) should use API keys, and routing requests through Free, Pro, or Max credentials on behalf of users is not permitted. A planned credit change for `claude -p` and Agent SDK usage was paused in June 2026. Terms have changed repeatedly; **read the current text before relying on anything here**.
+- **Two forms.** The Claude Code CLI in headless mode (`claude -p`) with machine-readable output (`--output-format json` or `stream-json`), a tool allow-list (`--allowedTools`), a permission mode, a turn limit (`--max-turns`), and a model choice (`--model`). And the **Claude Agent SDK** (Python package `claude-agent-sdk`), which packages the same harness as a library with hooks and permission callbacks. **(verify flags and SDK options, V44)**
+- **Value:** an edit loop tuned together with Claude models, which makes it the strongest baseline for `NativeRunner`'s edit reliability. The SDK's hooks and permission callbacks may let `cog` enforce policy at each tool call rather than only at the sandbox boundary **(verify, V44)**.
+- **Models:** Claude models only (for example, Claude Haiku 5.5 as a small tier, Claude Sonnet 5.5 or Claude Opus 5.5 as larger ones). It is not a way to run Fireworks or OpenRouter models; Copilot BYOK covers that.
+- **Limits:** like every vendor runner, its own system prompt and tools sit around `cog`'s task packet, so it is a runner and a baseline, never part of Planning ([ADR-0004](../decisions/0004-two-provider-interfaces.md)).
+- **Windows:** installed and signed in inside WSL2, like the other CLIs.
+
+### Claude terms of use
+
+Anthropic's Claude Code documentation says subscription sign-in is for ordinary use of Claude Code and native apps, developers building products or services (including with the Agent SDK) should use API keys, and routing requests through Free, Pro, or Max credentials on behalf of users is not permitted. A planned credit change for `claude -p` and Agent SDK usage was paused in June 2026. Terms have changed repeatedly; **read the current text before relying on anything here**. An API key (`ANTHROPIC_API_KEY`) is the unambiguous route for scripted use. Whether scripted runs of the unmodified CLI on the owner's own subscription count as ordinary personal use is settled before the Phase 3 trial (V20).
 
 ### Rules for every subscription-backed runner
 
@@ -122,7 +132,7 @@ Anthropic's Claude Code documentation says subscription sign-in is for ordinary 
 
 ### Takeover
 
-For human escalation, `cog takeover <run_id>` can open an interactive session in the task's worktree seeded with the task packet (for Copilot, using its interactive mode). Runners declare `takeover` in their capabilities. This is a fallback when the escalation ladder is exhausted, not a chat interface. Antigravity's equivalent is unverified.
+For human escalation, `cog takeover <run_id>` can open an interactive session in the task's worktree seeded with the task packet (for Copilot, its interactive mode; for Claude Code, an interactive `claude` session). Runners declare `takeover` in their capabilities. This is a fallback when the escalation ladder is exhausted, not a chat interface. Antigravity's equivalent is unverified.
 
 ---
 
@@ -216,16 +226,6 @@ Adapters classify failures so callers can react correctly.
 
 ---
 
-## 9. Verification list for this page
+## 9. Verification items for this page
 
-| Item                                                        | Check                                     |
-| ----------------------------------------------------------- | ----------------------------------------- |
-| Copilot SDK status, package names, Python version support   | Vendor docs                               |
-| Copilot BYOK login requirement                              | Test on the owner's account               |
-| Copilot unattended use from inside WSL2                     | Live contract test                        |
-| Antigravity headless flags and output format                | Vendor docs and a live test               |
-| Antigravity subscription terms for automation               | Vendor statement; not currently available |
-| Antigravity plan model access for the owner's tier          | Models page                               |
-| Fireworks structured-output behavior per model              | Test each chosen model                    |
-| OpenRouter provider preferences and data-collection options | Vendor docs                               |
-| Anthropic terms (if a Claude runner is ever used)           | Current legal page                        |
+This page's **(verify)** items are V12 to V20, V44, and V45 in the [roadmap's verification log](../roadmap.md#4-verification-log), which is the one list of record. Runner items are settled by live contract tests on the owner's machine.

@@ -1,9 +1,9 @@
 # Testing and Evaluation
 
 **Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
-Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
+Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#4-verification-log).
 
-The Planning workflow's first twelve nodes are deterministic, so most of the system is testable **without an LLM and without a network**. This page defines how.
+Everything before the planner (node 15) is deterministic apart from two optional, bounded LLM steps (nodes 11 and 13), so most of the system is testable **without an LLM and without a network**. This page defines how.
 
 ---
 
@@ -182,6 +182,8 @@ Use it to tune retrievers, tiers, and budgets, and to decide whether embeddings 
 
 - **Planner quality.** Metrics that do not need an LLM judge: validator first-pass rate, repair iterations, gap rounds, human edit and reject rates, cost per plan, secret redactions per run, and traceability coverage. LLM-judged scores are advisory only, since LLM review is the least reliable validator. Use recorded context snapshots so prompt or model changes are compared on **identical inputs**.
 - **Plan-vs-PR overlap.** On the golden set, run Planning as of each merged PR's base commit and compare the files (and symbols, where available) the plan declares with what the PR changed: precision and recall. It uses the human-written PR as a reference and needs no Implementation workflow. A different valid solution scores low, so treat it as a trend signal to compare versions of the planner, not a pass/fail gate. The same leakage rules as the recall eval apply.
+- **Agentic-search baseline (Phase 3).** The design bets that a deterministic pipeline plus a small tool budget beats letting the model search ([Planning reference](../workflows/planning/reference.md), Section 11). Test the bet: on the golden set, give the same planner model the read-only tools (`read_file`, `grep`, `symbol_lookup`, `list_dir`) with a larger, still bounded budget and **no** preloaded context. Compare it with the pipeline on recall of the PR's files, plan-vs-PR overlap, tokens and dollars per plan, and run-to-run variance, overall and on vague issues separately. Record the result and the decision it leads to.
+- **Execution trial (Phase 3).** Plan quality is ultimately whether the plan leads to working code. Before Implementation exists, hand at least three approved plans, task by task, to an existing agent (Claude Code, or Copilot BYOK) running a small model. Record per task: completed as written, needed more context, needed a human, or failed acceptance, and why. Findings feed the plan schema while it is still cheap to change.
 - **Prompt changes** are treated like code changes: snapshot tests plus an eval run before merge when they could affect recall or plan quality.
 - **Convention adherence** (optional): whether plans, and later changes, match the repo's observed patterns ([ADR-0014](../decisions/0014-repo-convention-precedence.md)).
 - **Implementation:** first-pass task success per runner and tier, escalation rate, batch conflict rate, time and cost. Designed with the Implementation workflow ([outline](../workflows/implementation/outline.md)).

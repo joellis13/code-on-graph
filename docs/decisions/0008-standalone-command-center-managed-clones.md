@@ -28,3 +28,7 @@ The tool should run from anywhere and operate on many repos. Nothing should need
 ## Revisit when
 
 A hosted or team deployment needs per-repo automation.
+
+## Addendum (2026-10-15, Round 4a): read-only working-copy checks
+
+"The user's own working copies are never touched" means never **modified**. When `cog plan` runs inside a working copy of a registered repo, `preflight` may run read-only queries there (`git --no-optional-locks status`, which does not refresh the index) to warn that Planning reads only what the remote has: uncommitted changes, a branch with no upstream, or commits not yet pushed ([Planning reference](../workflows/planning/reference.md), node 1). Planning still reads only the managed clone.

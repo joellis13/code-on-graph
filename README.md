@@ -8,16 +8,20 @@ A standalone command center for AI-assisted software work, built on Python and L
 
 The first workflow, **Planning**, takes a GitHub issue and produces a validated, human-approved implementation plan: deterministic context building, bounded LLM steps, code that checks every LLM output, and explicit human review. A later **Implementation** workflow will execute approved plans task by task.
 
-## Principles in brief
+## How it differs from typical agent tools
 
-- Owns the loop: cog is a harness built and controlled by its owner, with its own prompts, tools, and verification. It does not wrap Claude Code, Copilot, or similar products, whose prompts would nest inside cog's and sometimes conflict with them. Those products stay optional runners and baselines ([Architecture, Section 1](docs/explanation/architecture.md)).
-- Deterministic where checkable; LLM only where judgment is needed; LLM outputs are proposals, verified by code.
-- Standalone: installed once, works on managed clones, no footprint in your repos unless you export.
-- Local-first: all state, logs, and plans live in a local data directory.
-- Not opinionated about code style: each repo's conventions win.
-- Providers are pluggable: direct APIs first (Fireworks, OpenRouter); agent CLIs optional.
-- Platforms: Linux and Windows (through WSL2) are primary; macOS is supported; native Windows is best-effort. Implementation will run repo commands in containers ([Platforms and environments](docs/explanation/platforms-and-environments.md)).
+- **Planning and execution are separate.** A plan is an immutable, versioned artifact that a human approves by hash before anything runs.
+- **LLM outputs are proposals that code checks.** Every path, symbol, and command is verified against the repo; requirements must quote the issue verbatim.
+- **The model never writes commands.** Acceptance checks name entries discovered from the repo's own build files.
+- **Context is built deterministically, recorded, and measured** against historical merged PRs.
+- **Everything is bounded and recorded locally**: loops, tokens, dollars, and every call.
+- **No code-style opinions.** Each repo's conventions win.
+- **cog owns the loop and is model-agnostic.** Its own prompts and tools; direct providers first (Fireworks, OpenRouter); agent products (Claude Code, Copilot, Antigravity) are optional runners and baselines.
+
+The full comparison, including where typical agent tools are stronger and what cog does about it, is in [How cog differs](docs/explanation/how-cog-differs.md).
+
+**Platforms:** Linux and Windows (through WSL2) are primary; macOS is supported; native Windows is best-effort. Implementation will run repo commands in containers ([Platforms and environments](docs/explanation/platforms-and-environments.md)).
 
 ## Start here
 
-Read [`docs/index.md`](docs/index.md). Key pages: [Architecture](docs/explanation/architecture.md), [LangGraph primer](docs/explanation/langgraph-primer.md), [Roadmap](docs/roadmap.md), [ADRs](docs/decisions/README.md).
+Read [`docs/index.md`](docs/index.md). Key pages: [How cog differs](docs/explanation/how-cog-differs.md), [Architecture](docs/explanation/architecture.md), [LangGraph primer](docs/explanation/langgraph-primer.md), [Roadmap](docs/roadmap.md), [ADRs](docs/decisions/README.md).

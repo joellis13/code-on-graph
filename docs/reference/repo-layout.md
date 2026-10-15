@@ -29,31 +29,36 @@ code-on-graph/
 
 ## 2. The package: `src/code_on_graph/`
 
-Dependencies point downward in this table (a package may import those listed below it).
+Dependencies point downward. The **May import** column is the complete list for each package; anything not listed is forbidden.
 
-| Package                     | Purpose                                                                                                                   | May import                                              |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `interfaces/cli/`           | Typer app; one module per command group (`plan`, `runs`, `repo`, `index`, `config`, `doctor`, `eval`, `gc`)               | workflows, services, runtime, core                      |
-| `workflows/planning/`       | Graph factory, `nodes/` (one module per node), `prompts/`, routing functions, state definition                            | services and providers (interfaces only), runtime, core |
-| `workflows/implementation/` | Later                                                                                                                     | same                                                    |
-| `services/github/`          | HTTP client, GraphQL queries, cache, rate-limit handling, issue/PR mirror sync                                            | runtime, core                                           |
-| `services/git/`             | Managed clones, `show`/`log`/`blame` helpers, worktrees (later)                                                           | runtime, core                                           |
-| `services/index/`           | Index build and query; per-language support (Java, TypeScript, Python first)                                              | runtime, core                                           |
-| `services/retrieval/`       | The retrievers (`code`, `linked_prs`, `related_issues`, `repo_conventions`, `related_prs`, `docs`) and the context packer | index, github, git, runtime, core                       |
-| `services/artifacts/`       | Blob store, `PlanStore`, `RunStore`, `ArtifactStore`                                                                      | runtime, core                                           |
-| `services/render/`          | Auto-escaping templates and plan HTML                                                                                     | core                                                    |
-| `services/tools/`           | Typed tools exposed to LLMs (read-only first; edit tools later), each passing through policy                              | policy, runtime, core                                   |
-| `providers/llm/`            | `LLMClient` interface, tier router, OpenAI-compatible adapter, `FakeLLM`, record/replay                                   | runtime, core                                           |
-| `providers/agents/`         | `AgentRunner` interface, `NativeRunner`, Copilot, Antigravity, Claude runners, `FakeRunner`                               | llm, execution, runtime, core                           |
-| `providers/execution/`      | `ExecutionEnvironment`: `LocalProcess`, `Container`                                                                | runtime, core                                           |
-| `runtime/`                  | Node decorator, graph helpers, dependency container, run context, budgets, run registry                                   | core                                                    |
-| `config/`                   | Settings models, layering, tier mapping, trust-on-first-use                                                               | core                                                    |
-| `policy/`                   | Path deny-list, command allow-list, redaction, egress rules                                                               | core                                                    |
-| `telemetry/`                | Event store, structured logging, OpenTelemetry-shaped events                                                              | core                                                    |
-| `eval/`                     | Golden-set tooling and the context-recall eval runner                                                                     | services, core                                          |
-| `core/`                     | Pydantic domain models (`Reference`, `ContextItem`, `Plan`, `Task`, ...), status types, errors, ids                       | nothing in the project                                  |
+**"Runtime layer"** below means the four packages that together form the Runtime layer in [Architecture](../explanation/architecture.md), Section 2: `runtime/`, `telemetry/`, `policy/`, and `config/`. Within that layer, imports follow the table order (`runtime` may import the other three; `config` imports only `core`).
+
+| Package                     | Purpose                                                                                                                        | May import                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `interfaces/cli/`           | Typer app; one module per command group (`plan`, `runs`, `repo`, `index`, `config`, `doctor`, `eval`, `gc`). Composition root  | workflows, eval, services, providers, runtime layer, core               |
+| `eval/`                     | Golden-set tooling and the eval runners (context recall, plan-vs-PR overlap, baselines). Runs workflows, so a composition root | workflows, services, providers, runtime layer, core                     |
+| `workflows/planning/`       | Graph factory, `nodes/` (one module per node), `prompts/`, routing functions, state definition                                 | service and provider **interfaces** (not adapters), runtime layer, core |
+| `workflows/implementation/` | Later                                                                                                                          | same                                                                    |
+| `services/github/`          | HTTP client, GraphQL queries, cache, rate-limit handling, issue/PR mirror sync                                                 | runtime layer, core                                                     |
+| `services/git/`             | Managed clones, `show`/`log`/`blame`/`grep` helpers, worktrees (later)                                                         | runtime layer, core                                                     |
+| `services/index/`           | Index build and query; per-language support (Java, TypeScript, Python first). Reads git objects                                | git, runtime layer, core                                                |
+| `services/retrieval/`       | The retrievers (`code`, `linked_prs`, `related_issues`, `repo_conventions`, `related_prs`, `docs`) and the context packer      | index, github, git, artifacts, runtime layer, core                      |
+| `services/artifacts/`       | Blob store, `PlanStore`, `RunStore`, `ArtifactStore`                                                                           | runtime layer, core                                                     |
+| `services/render/`          | Auto-escaping templates and plan HTML                                                                                          | core                                                                    |
+| `services/tools/`           | Typed tools exposed to LLMs (read-only first; edit tools later), each passing through policy                                   | index, git, runtime layer, core                                         |
+| `providers/llm/`            | `LLMClient` interface, tier router, OpenAI-compatible adapter, `FakeLLM`, record/replay; the last-line egress redaction filter | runtime layer, core                                                     |
+| `providers/agents/`         | `AgentRunner` interface, `NativeRunner`, Claude Code, Copilot, and Antigravity runners, `FakeRunner`                           | llm, execution, runtime layer, core                                     |
+| `providers/execution/`      | `ExecutionEnvironment`: `LocalProcess`, `Container`                                                                            | runtime layer, core                                                     |
+| `runtime/`                  | Node decorator, graph helpers, dependency container, run context, budgets, run registry                                        | telemetry, policy, config, core                                         |
+| `telemetry/`                | Event store, structured logging, OpenTelemetry-shaped events; writers pass through the redactor                                | policy, config, core                                                    |
+| `policy/`                   | Path deny-list, command allow-list, redaction, egress rules, the policy snapshot                                               | config, core                                                            |
+| `config/`                   | Settings models, layering, tier mapping, trust on first use                                                                    | core                                                                    |
+| `core/`                     | Pydantic domain models (`Reference`, `ContextItem`, `Plan`, `Task`, ...), status types, errors, ids, shared protocols          | nothing in the project                                                  |
 
 Notes:
+
+- **Composition roots.** Only `interfaces/` and `eval/` import adapters. They build the dependency container and hand it to graph factories; everything below them sees interfaces.
+- **Services and providers are peers** and never import each other. Where one needs the other (for example, `NativeRunner` needs the tools in `services/tools/`), the composition root injects it, and the protocol it is typed against lives in `core`.
 
 - **Retrievers share one contract** (status, candidates, diagnostics) and live one per module.
 - **Each node module** carries a templated docstring (purpose, inputs and outputs, failure handling) and a registry entry (number, kind, tier, status) from which reference tables are generated.

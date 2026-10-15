@@ -11,14 +11,14 @@ Config snippets are illustrative. Directory names are the plan, not an implement
 
 Precedence, lowest to highest:
 
-| # | Layer                                   | Typical owner | Example content                                               |
-| - | --------------------------------------- | ------------- | ------------------------------------------------------------- |
-| 1 | Built-in defaults                       | cog           | Sensible limits, empty tiers                                  |
-| 2 | User config                             | You           | Providers, tiers, escalation ladder, budgets, preferences     |
-| 3 | In-repo `.cog/config.toml` _(optional)_ | The team      | Test, lint, and build commands; paths to deny; language hints |
-| 4 | Local per-repo override                 | You           | Personal tweaks for one repo, stored in the data directory    |
-| 5 | Environment variables                   | You / CI      | Secrets and one-off switches                                  |
-| 6 | CLI flags                               | You           | One-time overrides                                            |
+| #   | Layer                                   | Typical owner | Example content                                               |
+| --- | --------------------------------------- | ------------- | ------------------------------------------------------------- |
+| 1   | Built-in defaults                       | cog           | Sensible limits, empty tiers                                  |
+| 2   | User config                             | You           | Providers, tiers, escalation ladder, budgets, preferences     |
+| 3   | In-repo `.cog/config.toml` _(optional)_ | The team      | Test, lint, and build commands; paths to deny; language hints |
+| 4   | Local per-repo override                 | You           | Personal tweaks for one repo, stored in the data directory    |
+| 5   | Environment variables                   | You / CI      | Secrets and one-off switches                                  |
+| 6   | CLI flags                               | You           | One-time overrides                                            |
 
 Rules:
 
@@ -70,7 +70,7 @@ Location comes from `platformdirs` (on Linux and inside WSL2, `~/.local/share/co
 
 ```text
 <data>/
-  cog.db                       run records, plan metadata, event index (SQLite, WAL)
+  cog.db                       run records, plan metadata, the event store (SQLite, WAL)
   checkpoints.db               LangGraph checkpoints (SQLite)
   config/
     user.toml
@@ -79,8 +79,7 @@ Location comes from `platformdirs` (on Linux and inside WSL2, `~/.local/share/co
   mirrors/<owner>__<name>/     issue and PR mirror (SQLite + full-text index)
   indexes/<owner>__<name>/<base_sha>/    code index, keyed by commit
   runs/<run_id>/
-    events.jsonl               structured events for this run
-    resolved-config.json
+    resolved-config.json       (events are rows in cog.db; `cog runs show --json` exports them)
   plans/<owner>__<name>/<issue>/<plan_id>/
     v1/plan.json
     v1/plan.html               derived, disposable
@@ -94,15 +93,16 @@ Location comes from `platformdirs` (on Linux and inside WSL2, `~/.local/share/co
 
 **What is the system of record for what**
 
-| Data                      | Record                     | Rebuildable from                |
-| ------------------------- | -------------------------- | ------------------------------- |
-| Plans and approvals       | Files in `plans/`          | n/a (these are the record)      |
-| Plan metadata for queries | `cog.db`                   | Rescanning `plans/`             |
-| In-flight run state       | `checkpoints.db`           | n/a (lost state means a re-run) |
-| Run history, events       | `cog.db` + `runs/` + blobs | Partly; keep until pruned       |
-| Code index                | `indexes/`                 | The clone at that commit        |
-| Issue mirror              | `mirrors/`                 | GitHub (an incremental sync)    |
-| Clones                    | `repos/`                   | The remote                      |
+| Data                      | Record                       | Rebuildable from                |
+| ------------------------- | ---------------------------- | ------------------------------- |
+| Plans and approvals       | Files in `plans/`            | n/a (these are the record)      |
+| Plan metadata for queries | `cog.db`                     | Rescanning `plans/`             |
+| In-flight run state       | `checkpoints.db`             | n/a (lost state means a re-run) |
+| Run history, events       | `cog.db` (payloads in blobs) | Partly; keep until pruned       |
+| Debug log                 | Not a record: `logs/cog.log` | n/a (diagnostics only)          |
+| Code index                | `indexes/`                   | The clone at that commit        |
+| Issue mirror              | `mirrors/`                   | GitHub (an incremental sync)    |
+| Clones                    | `repos/`                     | The remote                      |
 
 Never make a database the only record of an approval.
 
@@ -116,7 +116,7 @@ All runs are logged locally, in three layers, with no separate service.
 
 1. **Checkpoints:** step-by-step state, via LangGraph.
 2. **Event store:** SQLite in WAL mode. One row per node execution and one per LLM call, tool call, GitHub call, and budget event. Large payloads (prompts, responses, context packs) are stored in the blob store and referenced by hash.
-3. **Structured text logs** (JSON lines) for debugging.
+3. **Structured text logs** (JSON lines in `logs/cog.log`) for debugging. They are diagnostics, not a record: the event store is the one record of what a run did, and anything a report or eval needs is read from it.
 
 ### What each event records
 

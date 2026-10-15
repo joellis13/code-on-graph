@@ -2,7 +2,7 @@
 
 **Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Decision:** [ADR-0010](../decisions/0010-documentation-strategy-and-tooling.md)
-Tool facts were checked in Round 1 (2026-10-06). Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
+Tool facts were checked in Round 1 (2026-10-06). Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#4-verification-log).
 
 ---
 
@@ -93,7 +93,7 @@ Criteria: Markdown and Mermaid support, search, a strict mode that fails on brok
 | **Sphinx + MyST**                      | Mature; strongest Python autodoc                                                                                                                           | Fallback if the API reference story fails |
 | Docusaurus                             | Capable, but adds a Node toolchain and has no native Python API docs                                                                                       | Not chosen                                |
 
-**Spike (Phase 1, about an hour):** build a stub site containing one Markdown page, one Mermaid diagram, one generated table, and one API-reference page; run it on Linux (and as a Windows smoke check); run a strict build with a deliberate broken link. Pass if all of that works. The result is recorded as an ADR, and because generators emit plain Markdown, switching tools later costs little.
+**Spike (Phase 5, about an hour):** build a stub site containing one Markdown page, one Mermaid diagram, one generated table, and one API-reference page; run it on Linux (and as a Windows smoke check); run a strict build with a deliberate broken link. Pass if all of that works. The result is recorded as an ADR, and because generators emit plain Markdown, switching tools later costs little.
 
 ---
 
@@ -104,6 +104,7 @@ Criteria: Markdown and Mermaid support, search, a strict mode that fails on brok
 - Executed examples: code blocks and CLI transcripts in how-to pages run against fixture repos, so usage docs cannot rot. Tool choice **(verify)**.
 - CLI help snapshots and contract-schema diff check ([Testing and evaluation](testing-and-evaluation.md)).
 - Drift test (registry, graph, draw.io).
+- The docs check: headers, internal links and anchors, ADR index, verification markers against the log, retired terms (Section 8).
 - Optional spell and style checks; an American English check is possible **(verify tools)**.
 - A pull-request checklist item: "Docs updated, or not needed because \_\_\_."
 
@@ -123,15 +124,26 @@ Rule: **terminal output in usage docs is captured, not typed.** A script runs th
 
 - Docs live on the main branch and change with the code. A pull request that changes behavior updates the matching pages.
 - Releases tag the docs. Per-version documentation sites can be added when releases exist **(verify tooling then)**.
+- The owner reviews documentation changes; later, CODEOWNERS for `docs/` can enforce review.
+- After sign-off, the node registry's `status` field and the roadmap are the live indicators of what is specified, stubbed, implemented, or tested.
+
 ### After sign-off: document on merge
 
-Until sign-off the docs are the specification. After it, they live on `main` and change in the same pull request as the code that makes them true or false. The rules for pages, ADRs, and `(verify)` markers in Section 4 apply unchanged. Two additions:
+Until sign-off the docs are the specification. After it ([ADR-0021](../decisions/0021-sign-off-and-living-specification.md)), they live on `main` and change in the same pull request as the code that makes them true or false. The rules for pages, ADRs, and `(verify)` markers in Section 4 apply unchanged. Two additions:
 
 - **Code that contradicts a spec page is resolved in the same pull request,** by changing the page or the code. Silent divergence is a defect.
 - **A design problem found while building** is fixed by updating the affected page and, if a decision changed, adding an ADR that supersedes the old one (or a dated addendum for a new fact). The old ADR's only edit is a status line.
 
-- The owner reviews documentation rounds now; later, CODEOWNERS for `docs/` can enforce review.
-- After the three rounds, the node registry's `status` field and the roadmap are the live indicators of what is specified, stubbed, implemented, or tested.
+### Keeping the documentation small and consistent
+
+The documentation outgrew what could be kept consistent by reading alone; the Round 4 review found contradictions between pages. Four rules from [ADR-0021](../decisions/0021-sign-off-and-living-specification.md) keep it in check:
+
+- **Just-in-time detail.** A page gains detail when the roadmap phase that builds it starts.
+- **Shrink as code grows.** When a generator exists for something (contract schemas, the node registry table, the command table, CLI and config references), the hand-written copy is deleted in the same pull request and replaced by a link.
+- **The consistency checklist** in `AGENTS.md` runs on every documentation change.
+- **The docs check** (Phase 1, in CI) mechanically catches what the checklist misses: missing page headers, broken internal links and anchors, ADR files missing from the index or with a mismatched status, `(verify)` markers on pages whose items are absent from the verification log, and **retired terms** (old names such as a replaced state key) that must no longer appear. Each rename adds its old name to the retired-terms list.
+
+A soft budget applies: an explanation page past about 500 lines is reviewed for splitting or trimming, and ADRs record decisions, not explanations.
 
 ---
 

@@ -54,3 +54,6 @@ Gates apply in this order:
 
 Language knowledge in the harness is limited to what indexing and command discovery need: grammars, import syntax, test-file patterns, and where each ecosystem declares its commands. These ship as overridable defaults. If a repo has no gates, `cog` says so and does not invent any.
 
+## Addendum (2026-10-15, Round 4a): repo instruction files in prompts
+
+The decision above is unchanged. Repo instruction files (`AGENTS.md`, `CONTRIBUTING.md`, assistant-instruction files, and repo-config style notes) outrank the harness on code and conventions, and never on the harness's process or safety rules. How they are framed in prompts, and what happens when they conflict with a process rule, is defined once in [Policy and sandbox](../explanation/policy-and-sandbox.md), Section 9.

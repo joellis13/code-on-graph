@@ -9,7 +9,7 @@ Code-OG (`code-on-graph`, command `cog`) is a standalone "command center" for AI
 
 ## 1. Why it exists, what it is, and what it is not
 
-**Why it exists.** Code-OG is a harness the owner builds and controls, for the owner's own use and learning. Wrapping an existing agent product (Claude Code, Copilot, and similar) nests that product's prompts, tools, and loop inside cog's, which wastes tokens and can produce conflicting instructions. So cog owns the whole loop: its own prompts, its own tool layer, its own verification. Existing agent products are optional runners, useful as baselines and stopgaps ([ADR-0005](../decisions/0005-direct-providers-first.md)). `NativeRunner`, cog's own tool-calling loop, is the intended Implementation runner, and building it is part of the purpose of the project, not a risk to be designed away.
+**Why it exists.** Code-OG is a harness the owner builds and controls, for the owner's own use and learning. Wrapping an existing agent product (Claude Code, Copilot, and similar) nests that product's prompts, tools, and loop inside cog's, which wastes tokens and can produce conflicting instructions. So cog owns the whole loop: its own prompts, its own tool layer, its own verification. Existing agent products are optional runners, useful as baselines and stopgaps ([ADR-0005](../decisions/0005-direct-providers-first.md)). `NativeRunner`, cog's own tool-calling loop, is the intended Implementation runner, and building it is part of the purpose of the project, not a risk to be designed away. What sets cog apart from typical agent tools, and where those tools are stronger, is set out in [How cog differs](how-cog-differs.md).
 
 **Is:** a Python application that orchestrates deterministic code and bounded LLM calls through LangGraph workflows; installed once; operates on managed clones of repos; keeps all state in a local data directory.
 
@@ -108,12 +108,12 @@ Two interfaces: `LLMClient` (completions, structured output, bounded read-only t
 
 Interfaces with local implementations now; scale implementations later. See [ADR-0013](../decisions/0013-scale-seams-not-scale-features.md).
 
-| Seam                                              | Now                     | Later                              |
-| ------------------------------------------------- | ----------------------- | ---------------------------------- |
-| Stores (`PlanStore`, `ArtifactStore`, `RunStore`) | Files + SQLite          | Object storage + Postgres          |
-| VCS access                                        | Token / `gh auth token` | GitHub App                         |
-| Execution                                         | Local process           | Containers, remote workers         |
-| Interfaces                                        | CLI                     | Web review UI, MCP server, webhook |
+| Seam                                              | Now                                                                                                                     | Later                              |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Stores (`PlanStore`, `ArtifactStore`, `RunStore`) | Files + SQLite                                                                                                          | Object storage + Postgres          |
+| VCS access                                        | Token / `gh auth token`                                                                                                 | GitHub App                         |
+| Execution                                         | Local process; a container per Implementation task ([ADR-0018](../decisions/0018-wsl2-home-and-container-execution.md)) | Remote workers                     |
+| Interfaces                                        | CLI                                                                                                                     | Web review UI, MCP server, webhook |
 
 ---
 
