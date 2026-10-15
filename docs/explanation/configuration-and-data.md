@@ -1,6 +1,6 @@
 # Configuration and Data
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Decisions:** [ADR-0006](../decisions/0006-local-first-storage-no-logging-service.md), [ADR-0007](../decisions/0007-plans-as-immutable-json.md), [ADR-0008](../decisions/0008-standalone-command-center-managed-clones.md), [ADR-0009](../decisions/0009-layered-configuration.md)
 
 Config snippets are illustrative. Directory names are the plan, not an implemented layout.
@@ -11,14 +11,14 @@ Config snippets are illustrative. Directory names are the plan, not an implement
 
 Precedence, lowest to highest:
 
-| #   | Layer                                   | Typical owner | Example content                                               |
-| --- | --------------------------------------- | ------------- | ------------------------------------------------------------- |
-| 1   | Built-in defaults                       | cog           | Sensible limits, empty tiers                                  |
-| 2   | User config                             | You           | Providers, tiers, escalation ladder, budgets, preferences     |
-| 3   | In-repo `.cog/config.toml` _(optional)_ | The team      | Test, lint, and build commands; paths to deny; language hints |
-| 4   | Local per-repo override                 | You           | Personal tweaks for one repo, stored in the data directory    |
-| 5   | Environment variables                   | You / CI      | Secrets and one-off switches                                  |
-| 6   | CLI flags                               | You           | One-time overrides                                            |
+| # | Layer                                   | Typical owner | Example content                                               |
+| - | --------------------------------------- | ------------- | ------------------------------------------------------------- |
+| 1 | Built-in defaults                       | cog           | Sensible limits, empty tiers                                  |
+| 2 | User config                             | You           | Providers, tiers, escalation ladder, budgets, preferences     |
+| 3 | In-repo `.cog/config.toml` _(optional)_ | The team      | Test, lint, and build commands; paths to deny; language hints |
+| 4 | Local per-repo override                 | You           | Personal tweaks for one repo, stored in the data directory    |
+| 5 | Environment variables                   | You / CI      | Secrets and one-off switches                                  |
+| 6 | CLI flags                               | You           | One-time overrides                                            |
 
 Rules:
 
@@ -27,12 +27,18 @@ Rules:
 - **Repo-supplied config is untrusted input.** It can only _tighten_ policy, never loosen it. Command allow-list entries from a repo require **trust on first use**: cog shows them, you approve, the approval is stored in user data, and any change re-prompts.
 - **Repo facts beat user defaults** (repo conventions outrank harness preferences, [ADR-0014](../decisions/0014-repo-convention-precedence.md)); **your local override beats the shared repo file.**
 - Style notes ("we prefer loops over streams here") may appear in repo config as free text for the planner, never as code in cog.
+- **Commands are argument lists, never strings,** and each carries what a non-interactive run needs. They form the **command table** that acceptance checks reference ([ADR-0019](../decisions/0019-acceptance-checks-reference-the-command-table.md)). Node 9 also discovers entries from build files; config declares or overrides them.
 
 ```toml
 # illustrative repo config (in-repo or local override)
-[commands]
-test = "./mvnw -q test"
-lint = "./mvnw -q checkstyle:check"
+[commands.test]
+argv = ["./gradlew", "test"]
+env = { CI = "true" }                            # keeps watch-mode runners non-interactive
+timeout_s = 900
+selectors = { class = ["--tests", "{value}"] }   # appended to argv for a class selector
+
+[commands.lint]
+argv = ["./gradlew", "spotlessCheck"]
 
 [policy]
 deny_paths = [".env*", ".github/workflows/**"]
@@ -41,11 +47,26 @@ deny_paths = [".env*", ".github/workflows/**"]
 style = "Plain loops over streams in the billing module; keep existing patterns."
 ```
 
+```toml
+# illustrative user config additions
+[backup]
+dir = "/mnt/c/Users/me/cog-backup"     # opt-in; approved plans are copied here (not the data directory)
+
+[acceptance]
+allow_custom_argv = false              # ADR-0019: gated escape for commands the table lacks
+
+[scope]                                # ADR-0020; a repo's config may only tighten the mode
+mode = "expand"                        # strict, expand, or open
+pause_after_expansions = 5
+always_allow = ["**/*Test.java", "**/*.test.ts"]
+never_allow = ["**/migrations/**"]
+```
+
 ---
 
 ## 2. The data directory
 
-Location comes from `platformdirs` (for example, under `%LOCALAPPDATA%` on Windows) and can be overridden with a `COG_HOME` environment variable. It must not be in a cloud-synced folder. All of cog's state is here; target repos are untouched.
+Location comes from `platformdirs` (on Linux and inside WSL2, `~/.local/share/cog`; on macOS, `~/Library/Application Support/cog`) and can be overridden with a `COG_HOME` environment variable. It must not be in a cloud-synced folder. Inside WSL2 it must stay on the distro's own filesystem, not under `/mnt/`, where SQLite's write-ahead mode is unreliable **(verify)** ([Platforms and environments](platforms-and-environments.md)). All of cog's state is here; target repos are untouched.
 
 ```text
 <data>/
@@ -84,6 +105,8 @@ Location comes from `platformdirs` (for example, under `%LOCALAPPDATA%` on Windo
 | Clones                    | `repos/`                   | The remote                      |
 
 Never make a database the only record of an approval.
+
+**Backups.** Only `plans/` and approvals are irreplaceable; everything else rebuilds or means a re-run. An optional backup directory receives each approved plan version (plans are immutable files, so a synced folder is safe there), and `cog backup` adds a consistent snapshot of `cog.db`. `cog gc` never deletes `plans/`. Whole-environment backup on Windows is covered in [Platforms and environments](platforms-and-environments.md), Section 5.
 
 ---
 

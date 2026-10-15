@@ -38,3 +38,19 @@ Evals show convention adherence is poor even with exemplars.
 ## Addendum (2026-10-06, Round 2): where exemplars are selected
 
 Exemplars (sibling code to imitate) depend on code hits, so they are selected by `code_retriever`'s neighbor tier (node 6) and emitted with `kind="exemplar"`. `repo_conventions` (node 9) supplies the rules, tool configs, and style notes. The decision above is unchanged; this records the implementation placement.
+
+## Addendum (2026-10-15, Round 4): who owns which quality gate
+
+The decision above is unchanged. This records how responsibility splits between the harness and the repos it works on, so the harness stays generic.
+
+- **The repo owns code quality:** style, formatting, lint rules, test frameworks, architecture patterns, commit and PR conventions. The repo expresses them in its own files (AGENTS.md, CONTRIBUTING, tool configs, instruction files).
+- **The harness owns process quality:** contracts, bounded loops, verification, safety, and evidence. It never decides what good code is. It decides whether the repo's own gates were found, run, and passed.
+
+Gates apply in this order:
+
+1. **Repo gates (mandatory when they exist):** the repo's lint, format, test, typecheck, and build commands, found by `repo_conventions` (node 9) and run by `cog`. The bar is no new failures compared with a baseline run before the change.
+2. **Harness safety gates (always on):** path deny-list, task file scope ([ADR-0020](0020-task-file-scope-detect-and-review.md)), secret checks, no edits to CI definitions.
+3. **Harness advisories (warn only):** change size, tests added for new behavior, and similar signals about the change, never about style.
+
+Language knowledge in the harness is limited to what indexing and command discovery need: grammars, import syntax, test-file patterns, and where each ecosystem declares its commands. These ship as overridable defaults. If a repo has no gates, `cog` says so and does not invent any.
+

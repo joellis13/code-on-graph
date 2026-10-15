@@ -1,6 +1,6 @@
 # Interaction Model
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 
 How people use Code-OG: a command-line tool, no chat window. Commands marked _(planned)_ do not exist yet; this page is the specification they will be built against.
 
@@ -11,7 +11,7 @@ How people use Code-OG: a command-line tool, no chat window. Commands marked _(p
 1. **A CLI, not scripts.** Users run `cog`. Workflows are library code behind commands.
 2. **Structured pauses, not chat.** A workflow runs until it needs a human, pauses with a clear payload, and waits. The human answers with a command. No conversation is required.
 3. **Resumable.** Pauses survive closing the terminal, rebooting, or waiting days. State lives in checkpoints.
-4. **Plain terminal.** Works in Git Bash, PowerShell, Windows Terminal, and Unix shells. Uses plain prompts and flags, not a rich TUI, because Git Bash terminals commonly have quirks with interactive programs.
+4. **Plain terminal.** Works in any terminal: a Linux or macOS shell, a WSL2 terminal, or `wsl cog …` from Git Bash, PowerShell, or cmd ([Platforms and environments](platforms-and-environments.md)). Uses plain prompts and flags, not a rich TUI, because terminals differ in how they handle interactive programs, especially through a `wsl` pass-through.
 5. **Scriptable.** Every command can run non-interactively with `--json` output and meaningful exit codes.
 6. **One service layer.** Anything the CLI does can later be done by a review web page, an MCP server, or a webhook, because they call the same layer.
 
@@ -19,21 +19,23 @@ How people use Code-OG: a command-line tool, no chat window. Commands marked _(p
 
 ## 2. Commands
 
-| Command                                                      | Purpose                                                                                 |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `cog plan <issue>` _(planned)_                               | Run the Planning workflow on an issue (`owner/repo#123`, or `123` inside a known clone) |
-| `cog resume <run_id>` _(planned)_                            | Resume a paused run with a decision or answer                                           |
-| `cog runs list` / `cog runs show <run_id>` _(planned)_       | Browse runs, statuses, costs, and events                                                |
-| `cog cancel <run_id>` _(planned)_                            | Stop a run at the next safe point                                                       |
-| `cog plan export <plan_id>` _(planned)_                      | Write a plan into a target repo (`.cog/plans/`), optionally as a commit or PR           |
-| `cog repo add <url-or-path>` / `cog repo list` _(planned)_   | Manage managed clones. `add` clones and runs the bounded first issue/PR mirror sync     |
-| `cog repo sync <repo>` _(planned)_                           | Fetch the clone and re-run the bounded mirror sync, with progress                       |
-| `cog index build <repo>` / `cog index query ...` _(planned)_ | Build and debug the index by hand                                                       |
-| `cog config show [--explain]` _(planned)_                    | Show resolved config and which layer set each value                                     |
-| `cog doctor` _(planned)_                                     | Check environment and credentials (below)                                               |
-| `cog eval run` _(planned)_                                   | Run evaluations, such as the context-recall eval                                        |
-| `cog takeover <run_id>` _(planned, Implementation)_          | Open an interactive agent session in a task's worktree                                  |
-| `cog gc` _(planned)_                                         | Prune old runs, blobs, indexes, and orphaned worktrees                                  |
+| Command                                                      | Purpose                                                                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `cog plan <issue>` _(planned)_                               | Run the Planning workflow on an issue (`owner/repo#123`, or `123` inside a known clone)                                  |
+| `cog resume <run_id>` _(planned)_                            | Resume a paused run with a decision or answer                                                                            |
+| `cog runs list` / `cog runs show <run_id>` _(planned)_       | Browse runs, statuses, costs, and events                                                                                 |
+| `cog cancel <run_id>` _(planned)_                            | Stop a run at the next safe point                                                                                        |
+| `cog plan export <plan_id>` _(planned)_                      | Write a plan into a target repo (`.cog/plans/`), optionally as a commit or PR                                            |
+| `cog repo add <url-or-path>` / `cog repo list` _(planned)_   | Manage managed clones. `add` clones, runs the bounded first issue/PR mirror sync, and shows the discovered command table |
+| `cog repo commands <repo>` _(planned)_                       | Show the resolved command table, where each entry came from, how confident it is, and which command ids are missing      |
+| `cog repo sync <repo>` _(planned)_                           | Fetch the clone and re-run the bounded mirror sync, with progress                                                        |
+| `cog index build <repo>` / `cog index query ...` _(planned)_ | Build and debug the index by hand                                                                                        |
+| `cog config show [--explain]` _(planned)_                    | Show resolved config and which layer set each value                                                                      |
+| `cog doctor` _(planned)_                                     | Check environment and credentials (below)                                                                                |
+| `cog eval run` _(planned)_                                   | Run evaluations, such as the context-recall eval                                                                         |
+| `cog takeover <run_id>` _(planned, Implementation)_          | Open an interactive agent session in a task's worktree                                                                   |
+| `cog backup` _(planned)_                                     | Copy plans and a consistent snapshot of `cog.db` to the configured backup directory                                      |
+| `cog gc` _(planned)_                                         | Prune old runs, blobs, indexes, and orphaned worktrees                                                                   |
 
 Global flags: `--json`, `--non-interactive`, `--offline` (replay from the local mirror), `--config <path>`, `--verbose`.
 
@@ -41,12 +43,12 @@ Global flags: `--json`, `--non-interactive`, `--offline` (replay from the local 
 
 Checks the things that most often cause confusing failures:
 
-- Python, uv, and git versions; git long-path setting on Windows.
+- Python, uv, and git versions. On Windows: that `cog` is running inside WSL2, with its data directory on the distro's own filesystem and not under `/mnt/`.
 - GitHub token resolution (`GITHUB_TOKEN`, then `gh auth token`) and **remaining API budget** per bucket.
 - Each configured provider: key present, endpoint reachable, declared capabilities.
 - Each configured runner: binary found, version, shell, and (on request) the live contract test.
-- Data directory location, free space, and whether it sits in a cloud-synced folder.
-- On Windows: whether `bash` resolves to Git Bash rather than the WSL launcher, where relevant.
+- Data directory location, size by category, free space, and whether it sits in a cloud-synced folder.
+- Memory, CPUs, and free disk inside WSL2; whether a backup directory is configured; whether GitHub and each provider are reachable from where `cog` runs.
 
 ---
 
@@ -156,4 +158,4 @@ All call the same service layer, so none changes the workflows.
 
 - Exact exit-code table and `--json` schema.
 - Whether `cog plan` accepts a bare issue number outside a known clone (error, or prompt to choose a repo).
-- Default open-in-browser behavior on Windows, macOS, and Linux for the review page.
+- Default open-in-browser behavior for the review page on Linux, macOS, and Windows (from inside WSL2).

@@ -1,6 +1,6 @@
 # ADR-0011: Platform support and the Implementation execution environment
 
-- **Status:** Accepted (Planning); **Open** (Implementation environment details)
+- **Status:** Partially superseded by [ADR-0018](0018-wsl2-home-and-container-execution.md) (platform tiers, where Planning runs on Windows, and the Implementation environment). Originally: Accepted (Planning); **Open** (Implementation environment details)
 - **Date:** 2026-10-06
 
 ## Context

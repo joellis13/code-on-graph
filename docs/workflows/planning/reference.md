@@ -38,7 +38,7 @@ Principles:
 5. **Every loop is bounded.** No unbounded LLM-driven cycles. After the limit, escalate to the human.
 6. **The structured plan (JSON) is the source of truth.** HTML is only a view.
 7. **Measure before adding complexity.** Embeddings, extra retrievers, and LLM review are added when evals show a gap.
-8. **LLM outputs are proposals, not facts.** Anything an LLM names (paths, symbols, commands, queries) is checked by code before anything depends on it. In the retrieval stage the LLM never emits file paths at all; paths come from extractors and are verified in node 5. In the planner, paths and commands are verified by node 18.
+8. **LLM outputs are proposals, not facts.** Anything an LLM names (paths, symbols, commands, queries) is checked by code before anything depends on it. In the retrieval stage the LLM never emits file paths at all; paths come from extractors and are verified in node 5. In the planner, paths, symbols, and commands are verified by node 18, and a task's acceptance checks name entries in the repo's command table instead of carrying commands ([ADR-0019](../../decisions/0019-acceptance-checks-reference-the-command-table.md)). Requirements are anchored the same way: each carries a verbatim quote from the issue, a comment, or a human answer, and code checks that the quote exists.
 
 9. **Repo conventions outrank harness preferences.** The harness has opinions about process (typed contracts, bounded loops, validated LLM output) and none about code style. Precedence, highest first: explicit repo rules (AGENTS.md, CONTRIBUTING, lint and format configs, repo-config style notes); patterns observed in nearby code; nothing. See [ADR-0014](../../decisions/0014-repo-convention-precedence.md).
 
@@ -146,10 +146,23 @@ class RetrieverResult(BaseModel):
     error: Optional[str] = None
     warnings: list[str] = []
 
+class Selector(BaseModel):
+    kind: str                           # a kind the command entry supports: "class", "file", "tag", "name"
+    value: str                          # validated against a conservative pattern; class and file values must resolve in the index
+
 class AcceptanceCheck(BaseModel):
-    kind: Literal["command"]
-    cmd: str
-    expect: str                         # e.g., "exit 0"
+    command_id: str                     # a key in the resolved command table (node 9): test, lint, format, typecheck, build, or a repo-declared id; "custom" when custom_argv is set
+    selector: Optional[Selector] = None
+    cwd: str = "."                      # POSIX path relative to the repo root (for example, a module directory)
+    expect: Literal["exit_0"] = "exit_0"
+    custom_argv: Optional[list[str]] = None   # off by default (config acceptance.allow_custom_argv); shown as untrusted at review; ADR-0019
+
+class Requirement(BaseModel):
+    id: str
+    text: str
+    source: Literal["issue_body", "comment", "human_answer"]
+    source_ref: str                     # "body", a comment id, or an answer id
+    quote: str                          # verbatim span from the source; node 18 checks that it occurs there
 
 class Task(BaseModel):
     id: str
@@ -159,6 +172,8 @@ class Task(BaseModel):
     files_to_modify: list[str] = []
     files_to_create: list[str] = []
     context_refs: list[str]             # ContextItem ids this task relies on
+    satisfies: list[str]                # Requirement ids this task contributes to (traceability)
+    reviewed_unaffected: list[str] = [] # paths the planner checked and judged unaffected (silences the blast-radius warning)
     acceptance: list[AcceptanceCheck]
     stop_conditions: list[str] = []     # when the executor should stop and report
     executor_tier: Literal["small", "medium", "large"] = "small"
@@ -167,7 +182,7 @@ class Plan(BaseModel):
     schema_version: int = 1             # persisted plans stay readable across versions
     issue: int
     summary: str
-    requirements: list[str]             # extracted from the issue; used for traceability
+    requirements: list[Requirement]     # each anchored to a quote; inferred content goes in assumptions, never here
     tasks: list[Task]
     assumptions: list[str] = []
     open_questions: list[str] = []
@@ -488,14 +503,25 @@ Each retriever wraps its body so that expected failures **return a status** inst
 
 1. Read, from the managed clone at `base_sha`, `AGENTS.md`, `CONTRIBUTING.md`, `CODEOWNERS`, PR/issue templates, any assistant-instruction files the repo carries, and the optional `.cog/config.toml`.
 2. Read **style and tooling configs** as rules: for example `.editorconfig`, Checkstyle, Spotless, ESLint, Prettier, `tsconfig`, `ruff`, `pyproject.toml`, `tox.ini`. They are reported, not interpreted.
-3. Discover how to test, lint, format, type-check, and build: parse `pom.xml` and Gradle files with their wrappers (`mvnw`, `gradlew`), `package.json` scripts, `Makefile`, `pyproject.toml`/`tox.ini`, and CI workflow files.
-4. Emit a `conventions` item including a **resolved command table** (`test`, `lint`, `format`, `typecheck`, `build`). The plan validator later uses this table to check acceptance commands. Commands that come from repo-supplied config and are not yet approved are marked **untrusted**.
+3. Discover how to test, lint, format, type-check, and build, **statically**. Planning executes no repo code, so no build tool is invoked to ask what it can do. Sources are listed in the table below.
+4. Emit a `conventions` item including the **resolved command table** ([ADR-0019](../../decisions/0019-acceptance-checks-reference-the-command-table.md)). Each entry is an **argument list** with environment additions (for example `CI=true`), a timeout, the selector kinds it supports with the argument fragment each appends, a **provenance** (file and key where it was found), and a **confidence** (explicit config over a build-file declaration over a convention-based inference). Config entries override discovered ones. Entries from repo-supplied config that are not yet approved are marked **untrusted**. Missing conventional ids (for example, no `test` command for a module) are reported as warnings, and the planner then cannot write acceptance checks for that module and records an open question. `cog repo add` and `cog repo commands <repo>` show the table.
 5. Include any free-text style notes from repo config, verbatim, for the planner.
+
+**Discovery sources by ecosystem (static only):**
+
+| Ecosystem                                       | Read                                                                                                        | Typical entries                                                                                                  | Weak spots                                                                                                                                                |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gradle (Java, Spring)                           | `gradlew`; `settings.gradle(.kts)` for subprojects; `build.gradle(.kts)` plugin blocks; the version catalog | `./gradlew test`, `build`, `check`; `:module:test` per subproject; a `--tests` class selector                    | Lint or format plugins applied through convention plugins or `buildSrc` are not visible statically; dynamic `include`s                                    |
+| Maven                                           | `mvnw`; `pom.xml` modules and plugins                                                                       | `./mvnw test`, `verify`; `-pl` per module; a `-Dtest` class selector                                             | Plugin configuration inherited from a parent POM                                                                                                          |
+| npm, pnpm, yarn (React, TypeScript, Playwright) | The lockfile (which package manager); `package.json` scripts; `playwright.config.*`; workspace config       | `<pm> run test`, `lint`, `build`; `tsc --noEmit` when present; a Playwright run with a file or `--grep` selector | Script names vary; the runner behind `test` (Jest, Vitest, Mocha) decides selector syntax; watch-mode defaults need `CI=true`; browsers must be installed |
+| Cucumber or Serenity on Gradle or Maven         | Runner properties and tag configuration in the build files                                                  | A tag or feature selector fragment                                                                               | Suites usually need a reachable system under test; selectors depend on the runner configuration                                                           |
+| Python (uv)                                     | `pyproject.toml` sections for pytest, ruff, pyright or mypy; `uv.lock`                                      | `uv run pytest`, `uv run ruff check`, `uv run pyright`; a path or `-k` selector                                  | Tools configured only in CI files; tox or nox wrappers                                                                                                    |
+| Any                                             | `Makefile` targets; CI workflow `run:` steps                                                                | A fallback source with lower confidence                                                                          | Shell strings in CI files are parsed conservatively; steps that cannot be parsed are skipped, never guessed                                               |
 
 **Notes:**
 
 - **Exemplars** (sibling code to imitate) depend on code hits, so `code_retriever`'s neighbor tier selects them (node 6). This node supplies the rules and tool configs.
-- Read through the deny-list. Wrapper scripts are resolved explicitly on Windows (`mvnw.cmd`, `gradlew.bat`, `npm.cmd`).
+- Read through the deny-list. Wrapper scripts (`./gradlew`, `./mvnw`) are resolved explicitly; on native Windows, which is best-effort, so are the `.cmd` and `.bat` forms.
 
 ---
 
@@ -635,8 +661,8 @@ After the call: drop queries that return zero hits, cache by input hash, run at 
 
 **Instructions (summary):**
 
-- Extract `requirements` from the issue first (used for traceability later).
-- Emit tasks with explicit `depends_on`, `files_to_modify`, `files_to_create`, `context_refs`, `acceptance` commands (use only commands from the conventions table), and `stop_conditions`.
+- Extract `requirements` first, each with its `source`, `source_ref`, and a verbatim `quote`. Anything inferred goes in `assumptions`, never in `requirements`.
+- Emit tasks with explicit `depends_on`, `files_to_modify`, `files_to_create`, `context_refs`, `satisfies` (requirement ids), `reviewed_unaffected` (paths checked and judged unaffected), `acceptance` checks (each names a `command_id` from the conventions table with an optional selector; never write a command or flag), and `stop_conditions`.
 - Write each task so a small model needs **no additional search**: include exact files, signatures, and relevant snippet references.
 - **Match the repo.** Follow the conventions item and the exemplars; do not introduce preferences of your own (principle 9). The prompt contains no code-style opinions.
 - **Do not emit batches.** Parallelism is derived by code.
@@ -707,15 +733,21 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 2. Task ids unique; every `depends_on` id exists; no cycles (`graph_errors` empty)
 3. Every `files_to_modify` path exists at `base_sha`; every `files_to_create` has an existing parent directory and doesn't already exist
 4. Every referenced symbol resolves in the symbol index
-5. Every `acceptance.cmd` is resolvable via the conventions command table (or an explicit allow-list); commands from repo-supplied config you have not yet approved are flagged
+5. Every acceptance check names a `command_id` present in the command table; its selector kind is supported by that entry and its value matches the allowed pattern (class and file values resolve in the index); `cwd` exists. A `custom_argv` is rejected unless enabled in config, and is flagged untrusted when enabled. Entries from repo-supplied config that you have not yet approved are flagged
 6. Every task cites at least one `context_refs` id that exists in the context
-7. Every `requirement` is covered by at least one task (simple id/keyword mapping, with the LLM review optionally checking semantic coverage)
+7. Every requirement is satisfied by at least one task (`satisfies`), and every task lists at least one existing requirement id
 8. Write-sets within batches are disjoint (after node 17's adjustments)
 9. Deny-list: no task touches protected paths (CI workflows, secrets, lockfiles unless explicitly allowed), using the shared policy module with paths POSIX-normalized and compared case-folded
 10. Size limits: maximum tasks and per-task description size (keeps executor prompts small)
 11. **Convention check (advisory, warning only):** if the conventions table defines lint or format commands, tasks that modify source files should include them in `acceptance`, or the plan should say why not. The repo's own tooling, not the harness's taste, is the style gate (principle 9).
 
-**Output:** `ValidationReport {passed: bool, errors: [{check, task_id, message}]}`.
+12. **Requirement anchoring:** each requirement's `quote` occurs verbatim (whitespace-normalized) in the cited issue body, comment, or human answer. This stops invented requirements.
+13. **Issue coverage (warning):** checklist items, acceptance-criteria lines, and sections such as "Expected behavior", extracted deterministically from the issue and comments, that overlap no requirement quote.
+14. **Blast radius (advisory, warning only):** for each symbol a task modifies, callers, importers, mapped tests, and co-change partners (from the index) that the plan neither includes nor lists in the task's `reviewed_unaffected`. Skipped with a note when the index is thin or `degraded`.
+
+Checks 1–10 and 12 are errors that trigger repair. Checks 11, 13, and 14 are warnings shown at review.
+
+**Output:** `ValidationReport {passed: bool, errors: [{check, task_id, message}], warnings: [{check, task_id, message}]}`.
 
 **Branches:** passed → node 19; failed → back to node 15 with the error list, **up to 3 retries**. After that, go to HITL with the validation failures displayed (don't loop forever).
 
@@ -729,9 +761,9 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 
 **Internal workflow:**
 
-1. Use a **different model** than the planner where possible (`LLMClient`, role `reviewer`; config warns when reviewer and planner resolve to the same model).
-2. Input: issue requirements, plan, validation report. Not the full context.
-3. Structured output: `[{severity: info|warn|critical, task_id?, finding}]` covering requirement→task coverage, risky changes, missing tests, ordering concerns.
+1. Use a **different model** than the planner, preferably from a different model family (`LLMClient`, role `reviewer`; config warns when reviewer and planner resolve to the same model or family). The egress policy applies, since another family is often another vendor.
+2. Input: the **original issue text and comments** (not the planner's requirements), the plan, and the validation report. Not the full context. The reviewer first lists the requirements it finds in the issue, blind to the planner's list, then compares the two lists.
+3. Structured output: `[{severity: info|warn|critical, task_id?, finding}]` covering requirements it found that no plan requirement matches, plan requirements it cannot find in the issue, risky changes, missing tests, and ordering concerns.
 4. Findings are **advisory** and attached to the HITL view. Only `critical` findings send the plan back to node 15, once.
 
 **Rationale:** LLM review is the least reliable validator, so it runs after deterministic checks and only for semantic judgment.
@@ -744,7 +776,7 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 
 **Purpose:** Produce the human-readable view. Pure function of the Plan JSON plus context metadata.
 
-**Content:** summary; requirements→tasks traceability table; batches with tasks and acceptance commands; assumptions and open questions (including carried-over `human_question` gaps); validation report; LLM review findings; warnings (e.g., "docs_retriever empty", "linked PR already merged"); a provenance view showing which context items each task relied on and their tiers (so a reviewer can see what was explicit vs. guessed).
+**Content:** summary; requirements→tasks traceability table; batches with tasks and acceptance commands; assumptions and open questions (including carried-over `human_question` gaps); validation report; LLM review findings; warnings (e.g., "docs_retriever empty", "linked PR already merged"); a provenance view showing which context items each task relied on and their tiers (so a reviewer can see what was explicit vs. guessed); an issue-coverage view that shows the issue and comments with the spans requirements quote marked, and checklist items no requirement covers highlighted; and the resolved argument list behind each acceptance check.
 
 **Implementation:** Jinja2 template → HTML (optionally also Markdown). The HTML is never parsed back and is stored as a derived file beside the plan JSON. **Hardening:** the page renders issue-derived and LLM-derived text, so the template auto-escapes everything, never injects raw HTML, and carries a restrictive content-security policy.
 
@@ -912,6 +944,8 @@ A budget breach pauses the run with reason `budget`; it is never a silent stop. 
 | Stale paths, line numbers, symbol names in issues                                   | `validate_references` with rename detection; flag drift                                                                                                                             |
 | One retriever failing breaks the run                                                | Retrievers return statuses; the packer proceeds with partial context and warns                                                                                                      |
 | LLM invents files, symbols, or commands                                             | `plan_validator` checks existence against the index and the conventions table                                                                                                       |
+| Planner invents requirements                                                        | Each requirement carries a verbatim quote that node 18 checks; inferred content goes in `assumptions`                                                                               |
+| Planner invents or mistypes commands                                                | Acceptance checks name command-table ids ([ADR-0019](../../decisions/0019-acceptance-checks-reference-the-command-table.md)); the planner never writes a command                    |
 | LLM asserts parallel batches that conflict                                          | Batches derived in code; write-sets checked                                                                                                                                         |
 | Unbounded LLM loops                                                                 | Every loop capped; escalate to HITL                                                                                                                                                 |
 | Prompt injection via issue/comments/docs                                            | Treat as data, delimited; read-only tools; no network; path deny-list; secret redaction on context and tool results ([Policy and sandbox](../../explanation/policy-and-sandbox.md)) |
@@ -921,7 +955,7 @@ A budget breach pauses the run with reason `budget`; it is never a silent stop. 
 | Rubber-duck LLM review treated as truth                                             | Runs last, advisory, different model                                                                                                                                                |
 | Secrets in code or issues sent to a provider                                        | Redaction in node 12 and on tool results; egress policy checked in `preflight`; keys never in logs                                                                                  |
 | GitHub rate limits (code search 10/min, search 30/min, core and GraphQL 5,000/hour) | No search or code-search API; managed clones and local mirror; GraphQL batching; ETag caching on REST; per-run API accounting                                                       |
-| Windows path, case, and line-ending differences                                     | POSIX-normalized paths; case-insensitive fallback in node 5; reads through git blobs; Windows and Linux CI                                                                          |
+| Windows path, case, and line-ending differences                                     | POSIX-normalized paths; case-insensitive fallback in node 5; reads through git blobs; Linux CI plus a Windows smoke job                                                             |
 | Provider structured-output quirks (per model and per endpoint)                      | Capabilities declared in config and checked in `preflight`; schema also in the prompt; always validate and repair                                                                   |
 | Harness taste overriding a repo's style                                             | Principle 9; no style opinions in prompts; exemplars; repo lint and format commands as the gate                                                                                     |
 
@@ -935,19 +969,21 @@ The primary evaluation (context recall against historical merged PRs), the secon
 
 ## 10. Open decisions
 
-| #   | Decision                                                                   | Status                                                                                                                                                                                            |
-| --- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Primary language(s) of target repos                                        | **Resolved:** Java, TypeScript, Python (tree-sitter first, behind the `Index` interface)                                                                                                          |
-| 2   | Typical repo size                                                          | **Resolved for design:** varies, so design for large repos (cached, commit-keyed builds). Whether embeddings are worth their cost remains **data-driven** (below)                                 |
-| 3   | Local mirror of issues/PRs                                                 | **Resolved:** yes ([ADR-0012](../../decisions/0012-github-integration.md))                                                                                                                        |
-| 4   | Token budget split between issue, code, docs, PRs, and conventions         | **Open:** tune with the recall eval                                                                                                                                                               |
-| 5   | Whether node 13's LLM verdict is needed                                    | **Open:** default off; add if deterministic checks prove insufficient                                                                                                                             |
-| 6   | Model tiers for `executor_tier` and the escalation ladder                  | **Resolved:** a config concern ([ADR-0004](../../decisions/0004-two-provider-interfaces.md)); defaults in [Providers](../../explanation/providers.md)                                             |
-| 7   | Whether to add embeddings                                                  | **Open, data-driven:** only if the recall eval shows a gap lexical and structural search cannot close                                                                                             |
-| 8   | Bounds for the first issue/PR mirror sync (time window, count)             | **New, open:** decide when the mirror is built; check cost on a large repo                                                                                                                        |
-| 9   | Bare issue number outside a known clone: error, or prompt to choose a repo | **New, open** (Interaction model, Section 8)                                                                                                                                                      |
-| 10  | Wiki documentation as an additional `docs_retriever` source                | **New, deferred:** docs live in the repos for now                                                                                                                                                 |
-| 11  | Secret-redaction rules and false-positive handling                         | **Resolved in design:** [ADR-0016](../../decisions/0016-secret-redaction.md) and [Policy and sandbox](../../explanation/policy-and-sandbox.md), Section 7. Tuning against real repos remains open |
+| #  | Decision                                                                                          | Status                                                                                                                                                                                            |
+| -- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | Primary language(s) of target repos                                                               | **Resolved:** Java, TypeScript, Python (tree-sitter first, behind the `Index` interface)                                                                                                          |
+| 2  | Typical repo size                                                                                 | **Resolved for design:** varies, so design for large repos (cached, commit-keyed builds). Whether embeddings are worth their cost remains **data-driven** (below)                                 |
+| 3  | Local mirror of issues/PRs                                                                        | **Resolved:** yes ([ADR-0012](../../decisions/0012-github-integration.md))                                                                                                                        |
+| 4  | Token budget split between issue, code, docs, PRs, and conventions                                | **Open:** tune with the recall eval                                                                                                                                                               |
+| 5  | Whether node 13's LLM verdict is needed                                                           | **Open:** default off; add if deterministic checks prove insufficient                                                                                                                             |
+| 6  | Model tiers for `executor_tier` and the escalation ladder                                         | **Resolved:** a config concern ([ADR-0004](../../decisions/0004-two-provider-interfaces.md)); defaults in [Providers](../../explanation/providers.md)                                             |
+| 7  | Whether to add embeddings                                                                         | **Open, data-driven:** only if the recall eval shows a gap lexical and structural search cannot close                                                                                             |
+| 8  | Bounds for the first issue/PR mirror sync (time window, count)                                    | **New, open:** decide when the mirror is built; check cost on a large repo                                                                                                                        |
+| 9  | Bare issue number outside a known clone: error, or prompt to choose a repo                        | **New, open** (Interaction model, Section 8)                                                                                                                                                      |
+| 10 | Wiki documentation as an additional `docs_retriever` source                                       | **New, deferred:** docs live in the repos for now                                                                                                                                                 |
+| 11 | Secret-redaction rules and false-positive handling                                                | **Resolved in design:** [ADR-0016](../../decisions/0016-secret-redaction.md) and [Policy and sandbox](../../explanation/policy-and-sandbox.md), Section 7. Tuning against real repos remains open |
+| 12 | Command discovery quality on Gradle convention plugins, npm test runners, and multi-module builds | **Open:** measure on the owner's repos in Phase 2 ([ADR-0019](../../decisions/0019-acceptance-checks-reference-the-command-table.md))                                                             |
+| 13 | How Planning is evaluated on greenfield repos, which have no golden set                           | **Open:** validator pass rate and human edit and reject rate until a history exists; see [Testing and evaluation](../../explanation/testing-and-evaluation.md), Section 9                         |
 
 ---
 
@@ -955,16 +991,17 @@ The primary evaluation (context recall against historical merged PRs), the secon
 
 Recorded so the reasoning survives. Each row says when to revisit.
 
-| Alternative                                                                                   | Decision                    | Why                                                                                                                                                                                                                                                                                                                                                                                       | Revisit when                                                                                 |
-| --------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| LLM-first extraction (an LLM emits `search_keywords` and `mentioned_files` as the first step) | Rejected                    | Paths and symbols produced by an LLM can look authoritative and be wrong (e.g., `src/auth.py` instead of `src/auth/token.py`), and nothing downstream checks them. It can also reformat stack frames and error strings, breaking exact-match search, and it puts a model call (on untrusted text) at the start of every run. Regex plus an existence check is high-precision and testable | Never for structured tokens. For _queries_, see the next row                                 |
-| LLM generates search queries                                                                  | Optional, bounded (node 11) | Vocabulary choice is a judgment task. Constrained, tagged, capped, filtered by code                                                                                                                                                                                                                                                                                                       | Recall eval shows validated-identifier queries miss relevant docs                            |
-| TF-IDF / RAKE / YAKE keyword extraction on issue text                                         | Rejected                    | Poor on short, noisy, code-heavy text                                                                                                                                                                                                                                                                                                                                                     | Unlikely                                                                                     |
-| Vector database from day one                                                                  | Rejected                    | FTS5 plus brute-force numpy handles tens of thousands of chunks; embeddings add chunking and staleness work                                                                                                                                                                                                                                                                               | Recall eval shows a gap lexical search can't close, or corpus grows beyond brute-force range |
-| LLM-asserted batches                                                                          | Rejected                    | Code derives them from `depends_on`; write-sets are checked                                                                                                                                                                                                                                                                                                                               | Never                                                                                        |
-| LLM review as the main validator                                                              | Rejected                    | Least reliable validator; runs last and is advisory (node 19)                                                                                                                                                                                                                                                                                                                             | Never as primary                                                                             |
-| Open-ended agentic loop for context gathering                                                 | Rejected for v1             | Costly and hard to reproduce. Replaced by a read-only tool budget plus structured `context_gaps` (nodes 15, 16)                                                                                                                                                                                                                                                                           | Eval shows frequent unresolved gaps, or recall is poor on ambiguous issues                   |
-| Purely deterministic preload with no planner tools or gaps                                    | Rejected                    | Fails on vague issues; the planner can't ask for what the pipeline missed                                                                                                                                                                                                                                                                                                                 | n/a                                                                                          |
+| Alternative                                                                                   | Decision                    | Why                                                                                                                                                                                                                                                                                                                                                                                       | Revisit when                                                                                              |
+| --------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| LLM-first extraction (an LLM emits `search_keywords` and `mentioned_files` as the first step) | Rejected                    | Paths and symbols produced by an LLM can look authoritative and be wrong (e.g., `src/auth.py` instead of `src/auth/token.py`), and nothing downstream checks them. It can also reformat stack frames and error strings, breaking exact-match search, and it puts a model call (on untrusted text) at the start of every run. Regex plus an existence check is high-precision and testable | Never for structured tokens. For _queries_, see the next row                                              |
+| LLM generates search queries                                                                  | Optional, bounded (node 11) | Vocabulary choice is a judgment task. Constrained, tagged, capped, filtered by code                                                                                                                                                                                                                                                                                                       | Recall eval shows validated-identifier queries miss relevant docs                                         |
+| TF-IDF / RAKE / YAKE keyword extraction on issue text                                         | Rejected                    | Poor on short, noisy, code-heavy text                                                                                                                                                                                                                                                                                                                                                     | Unlikely                                                                                                  |
+| Vector database from day one                                                                  | Rejected                    | FTS5 plus brute-force numpy handles tens of thousands of chunks; embeddings add chunking and staleness work                                                                                                                                                                                                                                                                               | Recall eval shows a gap lexical search can't close, or corpus grows beyond brute-force range              |
+| LLM-asserted batches                                                                          | Rejected                    | Code derives them from `depends_on`; write-sets are checked                                                                                                                                                                                                                                                                                                                               | Never                                                                                                     |
+| LLM review as the main validator                                                              | Rejected                    | Least reliable validator; runs last and is advisory (node 19)                                                                                                                                                                                                                                                                                                                             | Never as primary                                                                                          |
+| Open-ended agentic loop for context gathering                                                 | Rejected for v1             | Costly and hard to reproduce. Replaced by a read-only tool budget plus structured `context_gaps` (nodes 15, 16)                                                                                                                                                                                                                                                                           | Eval shows frequent unresolved gaps, or recall is poor on ambiguous issues                                |
+| Purely deterministic preload with no planner tools or gaps                                    | Rejected                    | Fails on vague issues; the planner can't ask for what the pipeline missed                                                                                                                                                                                                                                                                                                                 | n/a                                                                                                       |
+| Planner-authored command strings or argument lists in acceptance checks                       | Rejected                    | A string needs a platform-dependent parse and lets an LLM reading untrusted text choose executables; an argument list still lets it choose flags. Checks name command-table ids ([ADR-0019](../../decisions/0019-acceptance-checks-reference-the-command-table.md))                                                                                                                       | Command discovery misses the bar on the owner's repos, or real plans need checks the table cannot express |
 
 ### Decisions recorded as ADRs
 

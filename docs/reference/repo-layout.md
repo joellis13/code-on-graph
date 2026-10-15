@@ -1,6 +1,6 @@
 # Repo Layout (planned)
 
-**Type:** Reference · **Status:** Draft v1 · **Last updated:** 2026-10-08
+**Type:** Reference · **Status:** Draft v1 · **Last updated:** 2026-10-15
 
 The planned file tree of the `code-on-graph` repository. **No code exists yet.** Directories appear when the roadmap phase that needs them starts. The layering rules from [Architecture](../explanation/architecture.md) govern which packages may import which.
 
@@ -17,7 +17,7 @@ code-on-graph/
   .python-version            pinned Python (3.12+)
   justfile                   task runner wrapping `uv run` (same commands in every shell)
   .pre-commit-config.yaml    ruff, pyright, docs checks
-  .github/workflows/         CI: Windows + Linux matrix (macOS best-effort), docs build
+  .github/workflows/         CI: Linux primary, Windows smoke job, macOS best-effort, docs build
   src/code_on_graph/         the package (Section 2)
   tests/                     test tiers (Section 3)
   docs/                      documentation (Section 4)
@@ -45,7 +45,7 @@ Dependencies point downward in this table (a package may import those listed bel
 | `services/tools/`           | Typed tools exposed to LLMs (read-only first; edit tools later), each passing through policy                              | policy, runtime, core                                   |
 | `providers/llm/`            | `LLMClient` interface, tier router, OpenAI-compatible adapter, `FakeLLM`, record/replay                                   | runtime, core                                           |
 | `providers/agents/`         | `AgentRunner` interface, `NativeRunner`, Copilot, Antigravity, Claude runners, `FakeRunner`                               | llm, execution, runtime, core                           |
-| `providers/execution/`      | `ExecutionEnvironment`: `LocalProcess`, `Wsl`, `Container`                                                                | runtime, core                                           |
+| `providers/execution/`      | `ExecutionEnvironment`: `LocalProcess`, `Container`                                                                | runtime, core                                           |
 | `runtime/`                  | Node decorator, graph helpers, dependency container, run context, budgets, run registry                                   | core                                                    |
 | `config/`                   | Settings models, layering, tier mapping, trust-on-first-use                                                               | core                                                    |
 | `policy/`                   | Path deny-list, command allow-list, redaction, egress rules                                                               | core                                                    |
@@ -71,7 +71,7 @@ tests/
   graph/           whole-graph runs with FakeLLM, including invalid plans and interrupts
   live/            opt-in contract tests against real providers and CLIs (skipped by default)
   eval/            evaluation configs; the golden set (issue + PR file lists)
-  fixtures/        small fixture repos (Java, TypeScript, Python), recorded API responses
+  fixtures/        small fixture repos (Java with Gradle, TypeScript with React, TypeScript with Playwright, Python with uv), recorded API responses
   snapshots/       CLI help, generated reference, rendered HTML
 ```
 
@@ -91,6 +91,7 @@ docs/
     providers.md
     interaction-model.md
     configuration-and-data.md
+    platforms-and-environments.md
     indexing.md
     policy-and-sandbox.md
     testing-and-evaluation.md

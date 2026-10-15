@@ -16,7 +16,7 @@ The first workflow, **Planning**, takes a GitHub issue and produces a validated,
 - Local-first: all state, logs, and plans live in a local data directory.
 - Not opinionated about code style: each repo's conventions win.
 - Providers are pluggable: direct APIs first (Fireworks, OpenRouter); agent CLIs optional.
-- Platforms: Windows (primary), Linux, macOS.
+- Platforms: Linux and Windows (through WSL2) are primary; macOS is supported; native Windows is best-effort. Implementation will run repo commands in containers ([Platforms and environments](docs/explanation/platforms-and-environments.md)).
 
 ## Start here
 

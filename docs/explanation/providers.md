@@ -1,6 +1,6 @@
 # Providers
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Diagram:** [`providers.drawio`](../diagrams/providers.drawio)
 **Decisions:** [ADR-0004](../decisions/0004-two-provider-interfaces.md), [ADR-0005](../decisions/0005-direct-providers-first.md), [ADR-0011](../decisions/0011-platform-support-and-implementation-execution-environment.md)
 
@@ -97,7 +97,7 @@ Rules for every provider:
 - **BYOK** lets the CLI use your own provider through environment variables: `COPILOT_PROVIDER_BASE_URL`, `COPILOT_PROVIDER_API_KEY` (optional for some local setups), and `COPILOT_PROVIDER_TYPE` (`openai`, the default, `azure`, or `anthropic`). OpenAI-compatible endpoints, including Ollama and vLLM, are supported.
 - **BYOK value:** it gives you Copilot's agent loop (editing, shell, permissions, sessions) paid per token to Fireworks or OpenRouter. It is the **fastest stopgap for Implementation** while `NativeRunner` matures, and a baseline for comparison. It adds nothing to Planning.
 - **BYOK costs:** the model must support tool calling and streaming; `--effort` is rejected for custom models; the CLI cannot send custom request headers; you do not control its system prompt or tools, so Planning's tool-budget and logging rules cannot apply inside it; and it is a moving target (pin versions). Whether BYOK mode still requires a GitHub login is unclear in the sources: **(verify by testing on the owner's account)**.
-- **Windows:** works interactively from Git Bash for the owner. Unattended runs need verification; see [ADR-0011](../decisions/0011-platform-support-and-implementation-execution-environment.md).
+- **Windows:** works interactively from Git Bash for the owner today. `cog` runs inside WSL2 ([ADR-0018](../decisions/0018-wsl2-home-and-container-execution.md)), so the CLI must be installed and signed in there, and unattended runs need verification inside WSL2.
 
 ### Antigravity
 
@@ -149,6 +149,7 @@ model = "..."
 [tiers.large]
 adapter = "openrouter"
 model = "..."
+family = "..."      # lets config warn when the reviewer and planner share a family
 
 [escalation]
 ladder = ["small", "medium", "large"]
@@ -156,12 +157,14 @@ ladder = ["small", "medium", "large"]
 
 Workflows do not name tiers directly for completions. They request a **role**, and config resolves role → tier → `(adapter, model)`:
 
-| Role        | Used by (Planning) | Default tier                                                                               |
-| ----------- | ------------------ | ------------------------------------------------------------------------------------------ |
-| `planner`   | Node 15            | large                                                                                      |
-| `query_gen` | Node 11 (optional) | small                                                                                      |
-| `verdict`   | Node 13 (optional) | small                                                                                      |
-| `reviewer`  | Node 19 (optional) | medium, or an explicit different model; config warns if it resolves to the planner's model |
+| Role        | Used by (Planning) | Default tier                                                                                                                         |
+| ----------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `planner`   | Node 15            | large                                                                                                                                |
+| `query_gen` | Node 11 (optional) | small                                                                                                                                |
+| `verdict`   | Node 13 (optional) | small                                                                                                                                |
+| `reviewer`  | Node 19 (optional) | medium, or an explicit different model, preferably from another family; config warns if it resolves to the planner's model or family |
+
+A reviewer from another family is often another vendor, so the egress check ([Policy and sandbox](policy-and-sandbox.md), Section 8) applies to it like any provider.
 
 `preflight` (node 1) validates that each role's tier exists, is reachable, and has the required capabilities.
 
@@ -219,7 +222,7 @@ Adapters classify failures so callers can react correctly.
 | ----------------------------------------------------------- | ----------------------------------------- |
 | Copilot SDK status, package names, Python version support   | Vendor docs                               |
 | Copilot BYOK login requirement                              | Test on the owner's account               |
-| Copilot unattended use from Git Bash on Windows             | Live contract test                        |
+| Copilot unattended use from inside WSL2                     | Live contract test                        |
 | Antigravity headless flags and output format                | Vendor docs and a live test               |
 | Antigravity subscription terms for automation               | Vendor statement; not currently available |
 | Antigravity plan model access for the owner's tier          | Models page                               |

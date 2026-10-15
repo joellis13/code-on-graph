@@ -190,13 +190,13 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 **Superstep.** One round of execution in LangGraph: every ready node runs (in parallel), then their updates are merged and a checkpoint is saved.
 
-**Walking skeleton.** The first build milestone: every node present as a stub, wired end to end with real checkpointing and interrupts and a fake LLM, so the whole flow runs before any node is made real.
+**Walking skeleton.** The first build milestone: the thin slice of Planning nodes wired end to end with real checkpointing and interrupts and a fake LLM in tests, so the whole flow runs before any node is deepened. Nodes outside the slice exist only as `spec` rows in the registry.
 
 **Async-first.** Nodes, services, and adapters are written as `async` functions (ADR-0002).
 
-**WSL2.** Windows Subsystem for Linux 2: a Linux environment on Windows. The expected execution environment for Implementation (ADR-0011).
+**WSL2.** Windows Subsystem for Linux 2: a Linux environment on Windows. Where `cog` runs on Windows (ADR-0018). An environment, not a sandbox.
 
-**Platform tiers.** Windows (primary), Linux (CI and WSL2), macOS (best-effort).
+**Platform tiers.** Linux and Windows through WSL2 (primary), macOS (supported, best-effort CI), native Windows (best-effort). See Platforms and environments.
 
 **Event store.** The SQLite record of what every node, LLM call, tool call, and GitHub call did during runs.
 
@@ -238,7 +238,7 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 **Takeover.** Handing a task to a human in an interactive agent session when automated escalation is exhausted.
 
-**ExecutionEnvironment.** The interface through which all commands run: `LocalProcess`, `Wsl`, or `Container`.
+**ExecutionEnvironment.** The interface through which all commands run: `LocalProcess` or `Container`.
 
 **Worktree.** A separate checked-out copy of a repo sharing its git history, used to isolate each task's changes.
 
@@ -252,7 +252,7 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 **Command allow-list.** The only commands an agent may run, taken from the repo's known test, lint, and build commands rather than arbitrary shell.
 
-**Sandbox.** A physical boundary (worktree, WSL2, container) that limits damage if the rules fail.
+**Sandbox.** A physical boundary (worktree, container) that limits damage if the rules fail. WSL2 is where `cog` runs on Windows, not a sandbox.
 
 **Redaction.** Removing secrets from content before it is sent to a provider or written to logs.
 
@@ -324,7 +324,7 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 **Network profile.** A per-command setting (`none`, `package-registry-only`, `full`) for what network access a command may have.
 
-**Sandbox tiers.** Tier 0 policy only (Planning); 1 separate worktree with policy and scrubbed environment; 2 WSL2; 3 container.
+**Sandbox tiers.** Tier 0 policy only (Planning); 1 separate worktree with policy and scrubbed environment; 2 a dedicated, hardened WSL2 distro; 3 container (the planned Implementation sandbox).
 
 **Golden set.** Historical issues with merged closing PRs, stored with the files the PR touched, used for the context-recall eval.
 
@@ -337,3 +337,18 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 **Live test.** A test marked `live` that uses real providers, CLIs, or GitHub; skipped by default and never run in CI.
 
 **Executed docs.** Documentation examples and terminal transcripts produced by actually running commands, so they cannot drift from behavior.
+
+## Round 4 additions
+
+**Command table.** The resolved map from command id (`test`, `lint`, `format`, `typecheck`, `build`, or repo-declared ids) to an argument list, environment additions, a timeout, and supported selector kinds. Built by `repo_conventions` (node 9) with provenance and confidence. The only source of acceptance commands (ADR-0019).
+
+**Selector.** A typed narrowing of a command (`class`, `file`, `tag`, `name`), such as one test class. Its value is validated and, for class and file, resolved in the index.
+
+**Requirement anchor.** A verbatim quote from the issue, a comment, or a human answer attached to each plan requirement. The validator checks the quote exists, so a requirement cannot be invented.
+
+**Blast radius (check).** An advisory validator warning for callers, importers, mapped tests, and co-change partners of a modified symbol that the plan neither includes nor marks as reviewed and unaffected.
+
+**Scope expansion.** An edit to a file a task did not declare. Allowed and recorded under the detect-and-review rule (ADR-0020); refused only if it collides with another task in the same batch.
+
+**Thin slice.** The first real, end-to-end Planning path: a minimal set of nodes with a lexical-only index, one real planner call, and a real review. Deepened phase by phase rather than replaced.
+

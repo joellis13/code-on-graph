@@ -1,6 +1,6 @@
 # Documentation Strategy
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Decision:** [ADR-0010](../decisions/0010-documentation-strategy-and-tooling.md)
 Tool facts were checked in Round 1 (2026-10-06). Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
 
@@ -84,7 +84,7 @@ flowchart LR
 
 ## 5. Site tool
 
-Criteria: Markdown and Mermaid support, search, a strict mode that fails on broken links, a path to API reference from Python docstrings, a Windows-friendly build, speed, and low maintenance risk.
+Criteria: Markdown and Mermaid support, search, a strict mode that fails on broken links, a path to API reference from Python docstrings, a build that runs on Linux and in CI, speed, and low maintenance risk.
 
 | Candidate                              | Status (as researched in Round 1)                                                                                                                          | Role                                      |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
@@ -93,7 +93,7 @@ Criteria: Markdown and Mermaid support, search, a strict mode that fails on brok
 | **Sphinx + MyST**                      | Mature; strongest Python autodoc                                                                                                                           | Fallback if the API reference story fails |
 | Docusaurus                             | Capable, but adds a Node toolchain and has no native Python API docs                                                                                       | Not chosen                                |
 
-**Spike (Phase 1, about an hour):** build a stub site containing one Markdown page, one Mermaid diagram, one generated table, and one API-reference page; run it on Windows and Linux; run a strict build with a deliberate broken link. Pass if all of that works. The result is recorded as an ADR, and because generators emit plain Markdown, switching tools later costs little.
+**Spike (Phase 1, about an hour):** build a stub site containing one Markdown page, one Mermaid diagram, one generated table, and one API-reference page; run it on Linux (and as a Windows smoke check); run a strict build with a deliberate broken link. Pass if all of that works. The result is recorded as an ADR, and because generators emit plain Markdown, switching tools later costs little.
 
 ---
 
@@ -123,6 +123,13 @@ Rule: **terminal output in usage docs is captured, not typed.** A script runs th
 
 - Docs live on the main branch and change with the code. A pull request that changes behavior updates the matching pages.
 - Releases tag the docs. Per-version documentation sites can be added when releases exist **(verify tooling then)**.
+### After sign-off: document on merge
+
+Until sign-off the docs are the specification. After it, they live on `main` and change in the same pull request as the code that makes them true or false. The rules for pages, ADRs, and `(verify)` markers in Section 4 apply unchanged. Two additions:
+
+- **Code that contradicts a spec page is resolved in the same pull request,** by changing the page or the code. Silent divergence is a defect.
+- **A design problem found while building** is fixed by updating the affected page and, if a decision changed, adding an ADR that supersedes the old one (or a dated addendum for a new fact). The old ADR's only edit is a status line.
+
 - The owner reviews documentation rounds now; later, CODEOWNERS for `docs/` can enforce review.
 - After the three rounds, the node registry's `status` field and the roadmap are the live indicators of what is specified, stubbed, implemented, or tested.
 

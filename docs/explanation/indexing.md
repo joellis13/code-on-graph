@@ -1,6 +1,6 @@
 # Indexing
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Used by:** Planning nodes 1b (builds it), 5, 6, 9, 10, 11, 16b, 18 · **Decision:** [ADR-0017](../decisions/0017-index-design.md)
 
 Facts about third-party packages were checked on 2026-10-06. Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
@@ -137,7 +137,7 @@ Tree-sitter gives accurate **syntax**, not **semantics**. References are matched
 
 - **`tree-sitter-language-pack`** is a maintained fork of the older `tree-sitter-languages`, bundles many grammars (including Java, Python, and TypeScript) as prebuilt wheels, and works with tree-sitter 0.22 and newer. Its newer releases advertise on-demand parser downloads, which would add a network dependency and a reproducibility concern **(verify)**.
 - **The core `tree-sitter` package plus individually pinned grammar packages** (for example, a Java grammar package) gives explicit, reproducible versions at the cost of more dependencies.
-- Prebuilt Windows wheels must exist for the chosen packages and Python versions **(verify)**.
+- Prebuilt wheels must exist for the chosen packages and Python versions on Linux (the primary platform, including WSL2) and macOS; native Windows wheels are best-effort **(verify)**.
 - **Decision:** a Phase 3 spike compares the two, and the winner is recorded in an ADR amendment. Whichever is chosen, grammar versions are pinned in `uv.lock` and are part of the parse-cache key.
 
 ---
@@ -172,7 +172,7 @@ Not built in v1. The decision rule from Planning is to add them only if the reca
 Repo size varies, so the design avoids assumptions:
 
 - **Parse cache by blob id** makes repeat builds cheap (Section 5).
-- **Process pool** for parsing, since parsing is CPU-bound and grammars are native code. Windows spawn costs are paid once per build.
+- **Process pool** for parsing, since parsing is CPU-bound and grammars are native code. Process-spawn costs are paid once per build.
 - **Limits** (file size, file count, chunk size) are configurable defaults, set from measurements in Phase 3, not guesses here.
 - **Progress and cancellation** are reported through the event store; a cancelled build leaves no published partial index.
 - **Disk:** an index is a fraction of the repo size plus the FTS overhead; measure on a large repo during the spike.

@@ -1,6 +1,6 @@
 # Policy and Sandbox
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Decisions:** [ADR-0009](../decisions/0009-layered-configuration.md), [ADR-0011](../decisions/0011-platform-support-and-implementation-execution-environment.md), [ADR-0016](../decisions/0016-secret-redaction.md)
 
 Code-OG feeds untrusted text to language models, may later let agents edit files and run commands, and sends code to third-party services. This page says what can go wrong and what the system does about it. Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
@@ -10,7 +10,7 @@ Code-OG feeds untrusted text to language models, may later let agents edit files
 ## 1. Two ideas: policy and sandbox
 
 - **Policy** is a set of rules cog enforces **in its own code**: which paths may be read or changed, which commands may run, what may leave the machine.
-- **Sandbox** is a **physical boundary** (a separate worktree, WSL2, a container) that limits damage if the rules fail or are bypassed.
+- **Sandbox** is a **physical boundary** (a separate worktree, a container) that limits damage if the rules fail or are bypassed. WSL2 is where `cog` runs on Windows, not a sandbox: by default it can reach Windows drives.
 
 Policy is checked inside the functions that do the work (a tool refuses a denied path itself), not only in a validator that runs afterward. The sandbox assumes the policy will eventually have a bug.
 
@@ -86,7 +86,7 @@ Because most reads come from git objects rather than disk, many traversal tricks
 
 ### Task allow-lists (Implementation)
 
-An approved plan lists `files_to_modify` and `files_to_create` per task. In Implementation, edit tools refuse any path outside that task's lists (and always refuse denied paths). Plan validation (node 18) and tool enforcement use the same module.
+An approved plan lists `files_to_modify` and `files_to_create` per task. In Implementation, edit tools always refuse denied paths. An edit to an undeclared file is allowed and recorded as a **scope expansion**, and refused only if it collides with another task in the same batch; too many expansions pause the run with reason `scope`. The mode (`strict`, `expand`, `open`) and thresholds are configuration, and a repo's config can only tighten the mode. Plan validation (node 18) and tool enforcement use the same path module. Decision: [ADR-0020](../decisions/0020-task-file-scope-detect-and-review.md).
 
 ---
 
@@ -129,9 +129,9 @@ flowchart TD
 Planning executes no repo commands. For Implementation:
 
 - **Argument lists only,** never shell strings. No shell expansion means no injection through concatenation.
-- **An allow-list of commands,** drawn from the resolved command table (discovered from `pom.xml`/Gradle with wrappers, `package.json` scripts, Makefiles, `pyproject.toml`, CI files) plus entries from user config and repo config.
+- **An allow-list of commands,** drawn from the resolved command table (discovered statically from Gradle and Maven files with wrappers, `package.json` scripts, Makefiles, `pyproject.toml`, CI files) plus entries from user config and repo config. Acceptance checks name entries in this table and never carry a command of their own, unless the gated `custom_argv` escape is enabled ([ADR-0019](../decisions/0019-acceptance-checks-reference-the-command-table.md)).
 - **Trust on first use for repo-supplied commands** (below).
-- **Wrapper scripts** (`mvnw.cmd`, `gradlew.bat`, `npm.cmd`) are resolved to explicit executables on Windows.
+- **Wrapper scripts** (`./gradlew`, `./mvnw`, `npm`) are resolved to explicit executables. On native Windows, which is best-effort, the `.cmd` and `.bat` forms are resolved too.
 - **Scrubbed environment.** A small allow-list of variables (for example, `PATH`, `JAVA_HOME`, a temporary home), never provider keys or tokens. The GitHub token is not passed to executors.
 - **Limits:** wall-clock timeout, output size cap, and whole process-tree termination on timeout.
 - **Network profiles per command:** `none`, `package-registry-only`, or `full`. Builds often need dependency downloads, so `none` is not always possible; enforcing a profile depends on the sandbox (a container network setting or a proxy) and is designed with Implementation.
@@ -219,16 +219,16 @@ The generated HTML shows text derived from issues and from an LLM, so:
 
 ## 11. Sandbox tiers
 
-Matching [ADR-0011](../decisions/0011-platform-support-and-implementation-execution-environment.md):
+Matching [ADR-0018](../decisions/0018-wsl2-home-and-container-execution.md):
 
-| Tier | Mechanism                                                                      | Used for                                  | Notes                                                             |
-| ---- | ------------------------------------------------------------------------------ | ----------------------------------------- | ----------------------------------------------------------------- |
-| 0    | Policy only                                                                    | Planning                                  | No repo code executes                                             |
-| 1    | Separate git worktree + policy + scrubbed environment + argument-list commands | Early Implementation, trusted models      | No OS-level containment                                           |
-| 2    | **WSL2** distro (Linux namespaces; bubblewrap-style tools)                     | Implementation on Windows (expected)      | Faster git; no 260-character path limit **(verify tool choices)** |
-| 3    | **Container**                                                                  | Stronger isolation; future remote workers | Network and resource controls                                     |
+| Tier | Mechanism                                                                      | Used for                                 | Notes                                                              |
+| ---- | ------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------ |
+| 0    | Policy only                                                                    | Planning                                 | No repo code executes                                              |
+| 1    | Separate git worktree + policy + scrubbed environment + argument-list commands | Early Implementation, trusted models     | No OS-level containment                                            |
+| 2    | A dedicated **WSL2** distro with automount and interop off                     | Optional hardening on Windows            | Not a substitute for tier 3 **(verify settings and tool choices)** |
+| 3    | **Container** per task                                                         | Implementation (planned); remote workers | Network and resource controls                                      |
 
-Native Windows offers fewer options for unattended containment. Job objects can bound process trees and resources, but a disposable-VM feature such as Windows Sandbox is not designed for unattended orchestration **(verify both)**. That is the reason Implementation moves to WSL2 or containers.
+Native Windows offers fewer options for unattended containment. Job objects can bound process trees and resources, but a disposable-VM feature such as Windows Sandbox is not designed for unattended orchestration **(verify both)**. That is one reason `cog` runs inside WSL2 on Windows and Implementation uses containers.
 
 All execution goes through the `ExecutionEnvironment` interface, so tiers can change without touching workflows.
 

@@ -1,6 +1,6 @@
 # Architecture
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 **Diagram:** [`architecture.drawio`](../diagrams/architecture.drawio)
 
 Code-OG (`code-on-graph`, command `cog`) is a standalone "command center" for AI-assisted software work. It runs workflows (Planning first, Implementation later) against many repos from one installation, with every step logged and every human decision point explicit.
@@ -87,36 +87,7 @@ Two interfaces: `LLMClient` (completions, structured output, bounded read-only t
 
 ## 7. Platform support
 
-| Tier | Platform                                         | Commitment                            |
-| ---- | ------------------------------------------------ | ------------------------------------- |
-| 1    | Windows (Git Bash, PowerShell, Windows Terminal) | Primary; tested in CI                 |
-| 2    | Linux                                            | CI; WSL2 for Implementation execution |
-| 3    | macOS                                            | Supported; best-effort CI             |
-
-Planning is built and run natively on Windows. **Implementation execution moves to WSL2 or containers** because it runs agents that edit files and run commands, which need real containment. This decision, its reasons, the expected changes, and the triggers for revisiting it are recorded in [ADR-0011](../decisions/0011-platform-support-and-implementation-execution-environment.md).
-
-### Windows rules the design follows
-
-| Area           | Rule                                                                                                                                          |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Paths          | `pathlib` everywhere; stored paths are POSIX-style; Git Bash `/c/...` paths never accepted internally; deny-list compares case-folded paths   |
-| Clone paths    | Short, hash-based names; `core.longpaths` set; no reliance on symlinks                                                                        |
-| Line endings   | Read through git blobs so CRLF conversion cannot alter spans or hashes                                                                        |
-| Subprocesses   | Argument lists, never shell strings; resolve wrapper scripts (`mvnw.cmd`, `gradlew.bat`, `npm.cmd`) explicitly; kill process trees on timeout |
-| Runners        | Each records its `shell` (`bash` or `pwsh`); live contract tests run on your machine                                                          |
-| Terminal       | Plain prompts and explicit `cog resume`; no dependence on a rich TUI, since Git Bash terminals commonly have quirks with interactive programs |
-| Data directory | Resolved with `platformdirs`; must not be in a cloud-synced folder                                                                            |
-| CI             | Windows and Linux matrix; macOS best-effort                                                                                                   |
-
-### `ExecutionEnvironment`
-
-All command execution goes through one interface so the Implementation move to WSL2 or containers does not touch workflows.
-
-| Implementation | Used for                                     |
-| -------------- | -------------------------------------------- |
-| `LocalProcess` | Planning-side git and tooling; development   |
-| `Wsl`          | Implementation on Windows (expected)         |
-| `Container`    | Alternative isolation; future remote workers |
+`cog` runs natively on Linux and macOS, and on Windows inside a WSL2 Linux distro. Implementation executes repo commands in containers; Planning needs none. Platform tiers, what runs where on each OS, how Git Bash, cmd, and PowerShell users reach `cog`, the risks of the WSL2 choice and their mitigations, the portability rules the design keeps, and the `ExecutionEnvironment` implementations are all in [Platforms and environments](platforms-and-environments.md). The decision is [ADR-0018](../decisions/0018-wsl2-home-and-container-execution.md).
 
 ---
 
@@ -141,7 +112,7 @@ Interfaces with local implementations now; scale implementations later. See [ADR
 | ------------------------------------------------- | ----------------------- | ---------------------------------- |
 | Stores (`PlanStore`, `ArtifactStore`, `RunStore`) | Files + SQLite          | Object storage + Postgres          |
 | VCS access                                        | Token / `gh auth token` | GitHub App                         |
-| Execution                                         | Local, WSL2             | Containers, remote workers         |
+| Execution                                         | Local process           | Containers, remote workers         |
 | Interfaces                                        | CLI                     | Web review UI, MCP server, webhook |
 
 ---
@@ -151,6 +122,7 @@ Interfaces with local implementations now; scale implementations later. See [ADR
 - [Repo layout](../reference/repo-layout.md): the planned source and docs trees.
 - [LangGraph primer](langgraph-primer.md)
 - [Providers](providers.md)
+- [Platforms and environments](platforms-and-environments.md)
 - [Interaction model](interaction-model.md)
 - [Configuration and data](configuration-and-data.md)
 - [Indexing](indexing.md) · [Policy and sandbox](policy-and-sandbox.md) · [Testing and evaluation](testing-and-evaluation.md) · [Documentation strategy](documentation-strategy.md)

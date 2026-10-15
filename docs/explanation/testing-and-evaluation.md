@@ -1,6 +1,6 @@
 # Testing and Evaluation
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-15
 Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
 
 The Planning workflow's first twelve nodes are deterministic, so most of the system is testable **without an LLM and without a network**. This page defines how.
@@ -13,7 +13,7 @@ The Planning workflow's first twelve nodes are deterministic, so most of the sys
 2. **Fakes, not mocks of internals.** Tests inject fake implementations of the real interfaces (`FakeLLM`, `FakeRunner`, a fake `VCSHost`) through the same dependency container production uses.
 3. **Every contract has a test.** Every node, retriever, routing function, and policy rule is covered by a test written against its documented contract, not by a coverage percentage.
 4. **Determinism.** Inject the clock, sort before comparing, fix random seeds, and make fixture repos reproducible.
-5. **Windows first, Linux always.** The suite runs on both in CI; macOS is best-effort.
+5. **Linux first.** The suite runs on Linux in CI, which also stands in for the WSL2 distro `cog` uses on Windows. A Windows smoke job (the unit tests) and macOS are best-effort ([Platforms and environments](platforms-and-environments.md)).
 6. **Live is opt-in.** Anything that touches a real provider, CLI, or GitHub is marked `live`, skipped by default, and run on purpose.
 
 ---
@@ -39,6 +39,7 @@ Markers (`live`, `eval`, `slow`) select tiers. A plain `pytest` runs unit, integ
 - **Routing functions:** pure functions tested on tables of states.
 - **`derive_batches`:** property-based tests (Hypothesis) assert invariants: no task precedes its dependencies, batches are layers of the DAG, write-sets within a batch are disjoint, and cycles or unknown ids produce `graph_errors`, never exceptions.
 - **Plan validator:** one test per check, plus combined failures.
+- **Command discovery (node 9):** per-ecosystem fixtures with the expected command table, provenance, and confidence. Cases include Gradle with the lint plugin applied through a convention plugin (expected: reported as missing, not guessed), npm scripts whose test runner defaults to watch mode (expected: `CI=true` in the entry), a Playwright config, a multi-project Gradle build, and a repo with no test command (expected: a missing-command warning). Each command-table entry's selector fragments are tested.
 - **Path normalization, identifier splitting, redaction, deny-list:** property and corpus tests ([Policy and sandbox](policy-and-sandbox.md)).
 - **Config layering:** precedence, tighten-only enforcement, and `--explain` output.
 - **Event shapes:** costs are `None` when unknown, never `0`.
@@ -73,7 +74,7 @@ Modes: `live`, `record`, `replay`, `cache-only`. A recorded call is stored as on
 
 ### Fixture repos
 
-Small synthetic repos, built by a script, one per ecosystem: **Java** (Maven wrapper layout), **TypeScript** (npm), **Python** (uv). Each has issues-worth of history: renames, co-changing files, squash-merge-style commit subjects, tests alongside sources.
+Small synthetic repos, built by a script, one per ecosystem the owner uses: **Java** (Gradle wrapper, with a multi-project variant and a Spring-style layout; a Maven variant later), **TypeScript** (React with npm scripts), **TypeScript with Playwright** (`@playwright/test` and a config file), and **Python** (uv, pytest, ruff). Each has issues-worth of history: renames, co-changing files, squash-merge-style commit subjects, tests alongside sources.
 
 - Built with `git` using fixed author, committer, and date environment variables so commit ids are **reproducible** **(verify across platforms, including autocrlf settings)**.
 - Include Windows cases: CRLF files, names differing only by case, Unicode names, deep paths.
@@ -163,6 +164,8 @@ A script (`scripts/build_golden_set.py`, planned) mines merged PRs that close is
 - Balance across languages and repos (Java, TypeScript, Python; back end, front end, test automation).
 - Target **20–50 cases to start**, grown over time.
 
+**Greenfield projects have no golden set.** Golden sets are built from repos that have history, whether the owner's other repos or public ones, and are tools for tuning `cog`, not a requirement of the target repo. A repo with no golden set simply has no eval: `cog eval run` reports that instead of failing. The per-run checks (requirement anchoring, repo fit, the validator) do not depend on a golden set. For greenfield work, judge Planning by validator pass rate and your own edit and reject rate.
+
 **Prevent leakage.** An issue's later comments may name the files the fixing PR changed, which would make the eval trivially easy. Replay the issue **as it was before the fix began**: drop comments and edits after the PR's first commit or open time, and use the PR's base commit, not the default branch head **(verify the timeline fields available to enforce this)**.
 
 **Avoid overfitting.** Split the set into a development part (used while tuning) and a held-out part (checked occasionally, never tuned against).
@@ -190,7 +193,7 @@ Use it to tune retrievers, tiers, and budgets, and to decide whether embeddings 
 | Job            | Runs                                                         | Contents                                                            |
 | -------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
 | Lint and types | Every push                                                   | ruff, pyright, import-boundary check                                |
-| Tests          | Every push, **Windows and Linux** matrix (macOS best-effort) | Unit, integration, graph, snapshots                                 |
+| Tests          | Every push on Linux; Windows smoke (unit); macOS best-effort | Unit, integration, graph, snapshots                                 |
 | Docs           | Every push                                                   | Strict docs build, link check, executed examples, schema diff check |
 | Eval smoke     | Every push                                                   | Small subset, replay only                                           |
 | Eval full      | Nightly                                                      | Whole golden set, baseline comparison                               |
@@ -215,4 +218,4 @@ Keep the default job fast. Targets are set from measurements in Phase 1.
 - Initial thresholds for eval regressions and CI time budgets (set from the first baseline).
 - Whether the golden set draws from your own repos, public repos, or both, and the licensing implications of recording public data.
 - How much of the mirror is replayed in evals versus rebuilt.
-- Whether Hypothesis-style property tests extend to path normalization on real Windows file systems in CI.
+- Whether Hypothesis-style property tests extend to path normalization on real Windows file systems in the Windows smoke job.

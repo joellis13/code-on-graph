@@ -1,10 +1,10 @@
 # Code-OG Documentation
 
-**Status:** Rounds 1, 2, and 3 delivered; awaiting owner review and sign-off · **Last updated:** 2026-10-08
+**Status:** Rounds 1 to 4 delivered; awaiting owner sign-off · **Last updated:** 2026-10-15
 
 Code-OG (`code-on-graph`, command `cog`) is a standalone command center for AI-assisted software work, built on Python and LangGraph. The first workflow is **Planning**: turn a GitHub issue into a validated, human-approved implementation plan.
 
-**The project is documentation-first.** No code is written until the three documentation rounds are complete and signed off ([ADR-0015](decisions/0015-documentation-first-development.md)).
+**The project is documentation-first.** No code is written until the documentation rounds are complete and signed off ([ADR-0015](decisions/0015-documentation-first-development.md)).
 
 ---
 
@@ -15,12 +15,13 @@ Code-OG (`code-on-graph`, command `cog`) is a standalone command center for AI-a
 3. [Providers](explanation/providers.md): how models and agent tools plug in.
 4. [Configuration and data](explanation/configuration-and-data.md): config layers, the data directory, logging.
 5. [Interaction model](explanation/interaction-model.md): how you use it.
-6. [Repo layout](reference/repo-layout.md): the planned file tree.
-7. [Indexing](explanation/indexing.md), [Policy and sandbox](explanation/policy-and-sandbox.md), [Testing and evaluation](explanation/testing-and-evaluation.md), [Documentation strategy](explanation/documentation-strategy.md): the supporting subsystems.
-8. [Planning workflow reference](workflows/planning/reference.md): the first workflow, node by node. [Implementation outline](workflows/implementation/outline.md): scoped only.
-9. [Roadmap](roadmap.md): build order, exit criteria, and the verification log.
-10. [ADR index](decisions/README.md): every decision and why.
-11. [Glossary](reference/glossary.md): terms.
+6. [Platforms and environments](explanation/platforms-and-environments.md): where `cog` runs on Windows, Linux, and macOS, and what runs in containers.
+7. [Repo layout](reference/repo-layout.md): the planned file tree.
+8. [Indexing](explanation/indexing.md), [Policy and sandbox](explanation/policy-and-sandbox.md), [Testing and evaluation](explanation/testing-and-evaluation.md), [Documentation strategy](explanation/documentation-strategy.md): the supporting subsystems.
+9. [Planning workflow reference](workflows/planning/reference.md): the first workflow, node by node. [Implementation outline](workflows/implementation/outline.md): scoped only.
+10. [Roadmap](roadmap.md): build order, exit criteria, and the verification log.
+11. [ADR index](decisions/README.md): every decision and why.
+12. [Glossary](reference/glossary.md): terms.
 
 ---
 
@@ -39,9 +40,10 @@ Sorted by Diátaxis type.
 | Explanation       | [Policy and sandbox](explanation/policy-and-sandbox.md)                                                           | Round 3 ✔                                     |
 | Explanation       | [Testing and evaluation](explanation/testing-and-evaluation.md)                                                   | Round 3 ✔                                     |
 | Explanation       | [Documentation strategy](explanation/documentation-strategy.md)                                                   | Round 3 ✔                                     |
+| Explanation       | [Platforms and environments](explanation/platforms-and-environments.md)                                           | Round 4 ✔                                     |
 | Workflow          | [Planning reference (v3)](workflows/planning/reference.md) and [diagram (v3)](workflows/planning/workflow.drawio) | Round 2 ✔                                     |
 | Workflow          | [Implementation outline](workflows/implementation/outline.md)                                                     | Round 3 ✔ (outline only)                      |
-| Decisions         | [ADRs 0001–0017](decisions/README.md)                                                                             | Rounds 1–3 ✔                                  |
+| Decisions         | [ADRs 0001–0020](decisions/README.md)                                                                             | Rounds 1–4 ✔                                  |
 | Reference         | [Glossary](reference/glossary.md)                                                                                 | Round 1 ✔ (moved from the Planning reference) |
 | Reference         | [Repo layout](reference/repo-layout.md)                                                                           | Round 1 ✔                                     |
 | Reference         | CLI, config, schemas                                                                                              | Generated once code exists                    |
