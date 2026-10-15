@@ -1,13 +1,15 @@
 # Architecture
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-08
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
 **Diagram:** [`architecture.drawio`](../diagrams/architecture.drawio)
 
 Code-OG (`code-on-graph`, command `cog`) is a standalone "command center" for AI-assisted software work. It runs workflows (Planning first, Implementation later) against many repos from one installation, with every step logged and every human decision point explicit.
 
 ---
 
-## 1. What it is, and what it is not
+## 1. Why it exists, what it is, and what it is not
+
+**Why it exists.** Code-OG is a harness the owner builds and controls, for the owner's own use and learning. Wrapping an existing agent product (Claude Code, Copilot, and similar) nests that product's prompts, tools, and loop inside cog's, which wastes tokens and can produce conflicting instructions. So cog owns the whole loop: its own prompts, its own tool layer, its own verification. Existing agent products are optional runners, useful as baselines and stopgaps ([ADR-0005](../decisions/0005-direct-providers-first.md)). `NativeRunner`, cog's own tool-calling loop, is the intended Implementation runner, and building it is part of the purpose of the project, not a risk to be designed away.
 
 **Is:** a Python application that orchestrates deterministic code and bounded LLM calls through LangGraph workflows; installed once; operates on managed clones of repos; keeps all state in a local data directory.
 

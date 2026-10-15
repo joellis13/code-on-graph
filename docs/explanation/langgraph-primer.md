@@ -1,6 +1,6 @@
 # LangGraph Primer
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06 · **Audience:** someone new to LangGraph (including readers who know Redux)
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13 · **Audience:** someone new to LangGraph (including readers who know Redux)
 
 This page explains LangGraph well enough to read the Planning workflow reference and to build nodes for it. Items marked **(verify)** depend on library behavior that must be checked against current LangGraph docs before implementation. Code here is illustrative, not project code.
 
@@ -176,7 +176,8 @@ Conventions, all recorded in [ADR-0003](../decisions/0003-langgraph-orchestratio
 - **Version:** LangGraph 1.x, pinned `>=1.1,<2`. The checkpointer ships as a separate package, and the async SQLite variant is used. **(verify)** class names at build time.
 - **A node decorator** wraps every node to enforce the node contract: typed inputs and outputs, an explicit failure status for expected conditions, timing and usage logging, and output validation. Do not rely on LangGraph to validate node outputs. **(verify)**
 - **Dependency injection:** a graph factory receives a dependencies object (GitHub client, index, stores, provider router, clock). Nodes never import adapters. LangGraph's runtime context may be the delivery mechanism; closures also work. **(verify)**
-- **Small state:** big payloads live in the blob store; state holds ids or hashes. Checkpoints serialize state every step.
+- **Small state:** big payloads (including retriever results) live in the blob store; state holds ids or hashes. Checkpoints serialize state every step.
+- **One durable checkpointer: SQLite.** Every `cog` command is a new process, so pause and resume need state that outlives the process; an in-memory saver cannot do that. The async SQLite saver (`checkpoints.db`) is the only saver cog uses. No file-based or custom saver is planned, and tests that exercise resume use the same SQLite saver against a temporary data directory.
 - **Routing functions are pure** (`route_sufficient`, `route_gaps`, `route_validation`, `route_hitl`) and unit-tested directly.
 - **Statuses, not exceptions,** for expected conditions such as "nothing found."
 - **Bounded loops:** every loop has a limit; see the Planning reference, Section 5. LangGraph's recursion limit is a last-resort backstop, not the design.

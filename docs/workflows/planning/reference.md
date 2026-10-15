@@ -1,6 +1,6 @@
 # Planning Workflow — Reference (v3)
 
-**Type:** Workflow reference · **Status:** Draft v3 · **Last updated:** 2026-10-08
+**Type:** Workflow reference · **Status:** Draft v3 · **Last updated:** 2026-10-15
 Companion to [`workflow.drawio`](workflow.drawio). Node numbers here match the diagram.
 
 **Revision v3 (2026-10-06):** aligns the workflow with the foundation documents and decisions.
@@ -58,8 +58,9 @@ Principles:
 ## 2. Flow at a glance
 
 ```text
-START (cog plan) → 1 preflight → 2 fetch_issue → 3 normalize_issue
-      → 4 extract_references → 5 validate_references
+START (cog plan) → 1 preflight ─┬→ 2 fetch_issue → 3 normalize_issue → 4 extract_references ─┐
+                                └→ 1b ensure_index (parallel; builds or reuses the index) ───┤
+      → 5 validate_references  ◄──────────────────────────────────────────────────────────────┘
       → STAGE 1 (parallel): 6 code_retriever | 7 linked_prs | 8 related_issues | 9 repo_conventions
       → STAGE 2 (parallel, needs code hits): 10 related_prs | 11 docs_retriever
       → 12 context_packer (join)
@@ -76,7 +77,7 @@ START (cog plan) → 1 preflight → 2 fetch_issue → 3 normalize_issue
                   Reject + feedback → back to 15
 ```
 
-**Pause points (shown by the CLI as `paused:<reason>`):** node 14 (`clarify`), node 21 (`review`), node 18 after retries (`validation_failed`), and any node on a budget breach (`budget`). Continue with `cog resume <run_id>`.
+**Pause points:** see the [Interaction model](../../explanation/interaction-model.md), Section 4. Continue a paused run with `cog resume <run_id>`.
 
 ### Why two retrieval stages
 
@@ -176,12 +177,23 @@ class Plan(BaseModel):
     graph_errors: list[str] = []
 ```
 
+```python
+class RetrieverRef(BaseModel):
+    """What graph state holds for one retriever run. The items live in the blob store."""
+    retriever: str                      # same names as RetrieverResult.retriever
+    status: Literal["ok", "empty", "skipped", "error"]
+    result_blob: Optional[str] = None   # content hash of the stored RetrieverResult; None if nothing was stored
+    item_count: int = 0
+    tokens: int = 0                     # total tokens of the stored items, so the packer can plan its budget before loading
+    warnings: list[str] = []
+```
+
 State-level keys that merge across parallel branches (see Section 7):
 
-- `retriever_results: Annotated[list[RetrieverResult], operator.add]`. Every retriever, and `gap_resolver`, writes one result; the packer flattens them into the `PreloadedContext` and derives statuses from them.
+- `retriever_refs: Annotated[list[RetrieverRef], operator.add]`. Every retriever, and `gap_resolver`, stores its full `RetrieverResult` in the blob store and writes one `RetrieverRef` to state. The packer loads the blobs, flattens them into the `PreloadedContext`, and derives statuses from them.
 - `warnings: Annotated[list[str], operator.add]`
 
-State holds ids and hashes for large payloads (the raw issue, the context snapshot), not the payloads themselves.
+State holds ids and hashes for large payloads (the raw issue, retriever results, the context snapshot), not the payloads themselves. Checkpoints serialize state at every step, so snippets in state would be re-written on each one.
 
 ---
 
@@ -199,11 +211,12 @@ One row per node. This table is the model for the registry the code will hold; r
 | ----- | --------------------- | ---------------------------- | ---------------------- | ----------------------------------- | ---------------------------------------- | ------------------------------ | ------ |
 | START | `start`               | terminal                     | none                   | n/a                                 | Creates `run_id`, run record             | `graph.py` / CLI               | spec   |
 | 1     | `preflight`           | deterministic                | none                   | yes                                 | Fetches managed clone; writes run record | `nodes/preflight.py`           | spec   |
+| 1b    | `ensure_index`        | deterministic                | none                   | yes (by `base_sha`)                 | Index build or reuse; progress events    | `nodes/ensure_index.py`        | spec   |
 | 2     | `fetch_issue`         | deterministic                | none                   | yes (cached)                        | API calls; raw blob; mirror update       | `nodes/fetch_issue.py`         | spec   |
 | 3     | `normalize_issue`     | deterministic, pure          | none                   | yes                                 | None                                     | `nodes/normalize_issue.py`     | spec   |
 | 4     | `extract_references`  | deterministic, pure registry | none                   | yes                                 | None                                     | `nodes/extract_references.py`  | spec   |
-| 5     | `validate_references` | deterministic                | none                   | yes                                 | Git reads                                | `nodes/validate_references.py` | spec   |
-| 6     | `code_retriever`      | deterministic                | none                   | yes                                 | Index build (cached by `base_sha`)       | `retrieval/code.py`            | spec   |
+| 5     | `validate_references` | deterministic                | none                   | yes                                 | Git and index reads                      | `nodes/validate_references.py` | spec   |
+| 6     | `code_retriever`      | deterministic                | none                   | yes                                 | Index reads; writes its result blob      | `retrieval/code.py`            | spec   |
 | 7     | `linked_prs`          | deterministic                | none                   | yes                                 | API calls (cached)                       | `retrieval/linked_prs.py`      | spec   |
 | 8     | `related_issues`      | deterministic                | none                   | yes                                 | Incremental mirror sync                  | `retrieval/related_issues.py`  | spec   |
 | 9     | `repo_conventions`    | deterministic                | none                   | yes                                 | None (reads clone)                       | `retrieval/conventions.py`     | spec   |
@@ -255,6 +268,30 @@ One row per node. This table is the model for the registry the code will hold; r
 **Outputs:** `base_sha`, `run_id`, `warnings`, a reference to the resolved config, and the budgets.
 
 **Failure handling:** Hard-stop only on unrecoverable conditions (no auth, not found, is a PR, required capability missing). Each hard-stop names the exact fix, such as the environment variable to set. Everything else becomes a warning.
+
+---
+
+### 1b. `ensure_index`
+
+**Type:** deterministic
+
+**Purpose:** Make the commit-keyed index for `base_sha` exist before anything reads it. Building an index can take minutes on a large repo, so it is a visible step with progress events and a time budget, not a side effect hidden inside node 5 or 6.
+
+**Runs:** in parallel with nodes 2–4, since both depend only on `preflight`. Node 5 waits for both.
+
+**Internal workflow:**
+
+1. Look for a published index at `indexes/<repo>/<base_sha>/`. If present, return it with its stats (reuse).
+2. Otherwise take the per-repo build lock. If another run is already building the same commit, wait and share its result.
+3. Build per [Indexing](../../explanation/indexing.md), Section 5. The parse cache means only blobs changed since an earlier commit are parsed. Emit progress events (files done of total) to the event store, and honor `cog cancel`.
+4. Enforce the build time budget from config. On expiry, stop, publish nothing partial, and return `degraded` with a warning (see below).
+5. Record build stats (files indexed and skipped with reasons, parse failures per language, timings) in the result and the event store.
+
+**Outputs:** `index_ref` (location and stats) and `index_status`: `ok`, or `degraded` (no usable index, so retrievers use the lexical-only fallback in [Indexing](../../explanation/indexing.md), Section 8, and symbol-based tiers return `skipped`).
+
+**Failure handling:** A corrupt published index is rebuilt once. A time-budget expiry returns `degraded`; it does not fail the run. In a `degraded` run, node 5 validates identifiers by lexical search only and leaves them `unchecked` when that is inconclusive.
+
+**Notes:** `cog index build <repo> [--commit <sha>]` runs the same build ahead of time, so the first `cog plan` on a new repo need not pay for it.
 
 ---
 
@@ -341,7 +378,7 @@ One row per node. This table is the model for the registry the code will hold; r
 **Internal workflow:**
 
 1. **Paths:** does the file exist at `base_sha` (looked up in the managed clone's git tree; no working tree needed)? If not, check `git log --follow --diff-filter=R` for a rename and set `status="renamed"` with `resolved`. Otherwise `not_found`.
-2. **Identifiers:** look up in the symbol index (node 6's index; build it here if absent). Exists → `exists`; otherwise `not_found`.
+2. **Identifiers:** look up in the symbol index (built or reused by node 1b). Exists → `exists`; otherwise `not_found`. If node 1b reported `degraded`, fall back to lexical search and leave inconclusive identifiers `unchecked`.
 3. **Stack frames:** verify the file exists and the line is within bounds; capture a ±N-line snippet at `base_sha`. (Line numbers drift; flag if the file changed since the issue was created, using `updated_at` versus the file's last commit.)
 4. **Commit SHAs:** `git cat-file -e`.
 5. **Issue/PR refs:** confirm they exist (cheap API call, cached).
@@ -359,7 +396,7 @@ One row per node. This table is the model for the registry the code will hold; r
 
 ### Stage 1 — parallel, independent retrievers
 
-All four read `refs` and `NormalizedIssue`, and each writes one `RetrieverResult` into the reducer-merged `retriever_results` key. They share one contract:
+All four read `refs` and `NormalizedIssue`. Each stores one `RetrieverResult` in the blob store and writes a `RetrieverRef` into the reducer-merged `retriever_refs` key. They share one contract:
 
 - **`status`:** `ok`; `empty` (searched, found nothing); `skipped` (a prerequisite is missing, for example no mirror yet); or `error`.
 - **`items`:** `ContextItem`s with provenance.
@@ -375,7 +412,7 @@ Each retriever wraps its body so that expected failures **return a status** inst
 
 **Purpose:** Find the code the planner needs. This is the most important retriever and the least standardized; the tiers below are a synthesis of established techniques, not a standard.
 
-**Index prerequisites (built once per `base_sha` from the managed clone's git objects, cached):**
+**Index prerequisites (built or reused by node 1b, once per `base_sha`, from the managed clone's git objects):**
 
 - Symbol index: definitions and references (tree-sitter, or `ast` for Python, or an LSP; ctags as a simple fallback)
 - Lexical index: SQLite FTS5 over code chunks, with identifiers split at index time (see the [glossary](../../reference/glossary.md): _identifier splitting_), plus ripgrep for exact matches
@@ -435,8 +472,8 @@ Each retriever wraps its body so that expected failures **return a status** inst
 **Internal workflow:**
 
 1. Explicitly linked issues (`linked_issue_numbers`, `issue_ref` refs): fetch title, state, and key comments in one batched GraphQL query.
-2. Run FTS5 over the **local issue/PR mirror** using validated identifiers and error strings. The mirror is synced incrementally by `updatedAt`; the first sync pages through GraphQL and is bounded by config (for example, a time window) **(verify cost on a large repo)**.
-3. If no mirror exists yet for the repo, return `skipped` with a warning. The GitHub search API (30 requests per minute) is **not** used by default.
+2. Run FTS5 over the **local issue/PR mirror** using validated identifiers and error strings. This node only runs the **incremental** sync (changes since the last `updatedAt`), capped at a small number of pages per run.
+3. The **first sync** is not done here. It is an explicit step run by `cog repo add` (and re-run by `cog repo sync <repo>`) with progress reporting, paging through GraphQL and bounded by config (for example, a time window) **(verify cost on a large repo)**. If no mirror exists yet, this node returns `skipped` with a warning naming that command. The GitHub search API (30 requests per minute) is **not** used by default.
 4. Emit items with provenance; mark duplicates and "closed as completed" prominently.
 
 ---
@@ -533,7 +570,7 @@ After the call: drop queries that return zero hits, cache by input hash, run at 
 **Internal workflow:**
 
 1. Wait for all retrievers (LangGraph waits on a list-form edge).
-2. Merge `retriever_results` into one item list, statuses, and warnings.
+2. Load each retriever's stored `RetrieverResult` from the blob store (using the `retriever_refs` in state) and merge them into one item list, statuses, and warnings.
 3. **Apply the path deny-list** again (defense in depth) and **redact secrets**: detected tokens, keys, and credentials are replaced with `[REDACTED:<kind>]`. Items that are secrets in their entirety are dropped. Redaction counts become a warning and a metric.
 4. **Dedupe:** same path + overlapping line ranges merge; the same PR or issue from multiple retrievers keeps all provenance.
 5. **Rank** by tier first (`explicit` > `symbol` > `lexical` > `neighbor` > `semantic`), then score.
@@ -636,7 +673,7 @@ Non-empty `plan.context_gaps` **and** `gap_rounds < 2` → 16b. Otherwise → 17
 
 1. Run resolvers for non-human gaps; add results to context with `tier="gap_fill"`.
 2. Record "searched, found nothing" for empty results so the planner doesn't re-ask.
-3. Return the results as a `RetrieverResult(retriever="gap_resolver")`, increment `gap_rounds`, and return to node 15.
+3. Store the results as a `RetrieverResult(retriever="gap_resolver")` blob, add its `RetrieverRef` to state, increment `gap_rounds`, and return to node 15.
 
 **Cap:** 2 rounds. LLMs will keep asking for more context if allowed.
 
@@ -775,26 +812,7 @@ The Implementation workflow takes the approved plan, executes batches sequential
 
 ## 6. Storage
 
-Everything lives in cog's data directory; target repos are untouched. Full layout: [Configuration and data](../../explanation/configuration-and-data.md). Decisions: [ADR-0006](../../decisions/0006-local-first-storage-no-logging-service.md), [ADR-0007](../../decisions/0007-plans-as-immutable-json.md), [ADR-0008](../../decisions/0008-standalone-command-center-managed-clones.md).
-
-| Data                                                                     | Where                                                                                       | Why                                                                                          |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Approved plans, approvals                                                | Files: `plans/<repo>/<issue>/<plan_id>/vN/` (`plan.json`, `approval.json`)                  | **System of record.** Immutable versions with parent hashes; diffable; survive database loss |
-| Rendered HTML                                                            | Beside the plan JSON (`plan.html`)                                                          | Derived view; disposable                                                                     |
-| Plan metadata for queries                                                | `cog.db` (SQLite, WAL)                                                                      | Index only; rebuildable by rescanning `plans/`                                               |
-| Raw fetched issue data, context snapshots, prompts and responses         | `blobs/` (content-addressed files)                                                          | Replay and audit                                                                             |
-| Issue and PR mirror                                                      | `mirrors/<repo>/` (SQLite + FTS5)                                                           | `related_issues`, offline replay, avoids the search API                                      |
-| Code index (FTS5, symbols, import graph, co-change, optional embeddings) | `indexes/<repo>/<base_sha>/`                                                                | Rebuildable cache keyed by commit                                                            |
-| Run history, events, metrics                                             | `cog.db`, `runs/<run_id>/events.jsonl`                                                      | Queryable; cost is `NULL` when unknown                                                       |
-| Graph checkpoints                                                        | `checkpoints.db` via the LangGraph SQLite checkpointer **(verify package and class names)** | Interrupt/resume and replay                                                                  |
-| Target repo                                                              | Nothing, unless `cog plan export` is run                                                    | No footprint by default                                                                      |
-
-Rules:
-
-- Never make a database the only record of an approval.
-- Enable WAL mode; keep write transactions short; guard clone fetches and index builds with per-repo locks.
-- State holds ids and hashes for large payloads, not the payloads.
-- Never put the data directory in a cloud-synced folder.
+Planning writes only into cog's data directory; target repos are untouched unless `cog plan export` is run. The layout, the system of record for each kind of data, and the rules (never make a database the only record of an approval, WAL mode and short transactions, no cloud-synced data directory) are defined once in [Configuration and data](../../explanation/configuration-and-data.md), Section 2. What each node writes is in the registry's _Side effects_ column (Section 4.0). Decisions: [ADR-0006](../../decisions/0006-local-first-storage-no-logging-service.md), [ADR-0007](../../decisions/0007-plans-as-immutable-json.md), [ADR-0008](../../decisions/0008-standalone-command-center-managed-clones.md).
 
 ---
 
@@ -804,24 +822,11 @@ General LangGraph concepts are in the [primer](../../explanation/langgraph-prime
 
 ### Conventions this workflow follows
 
-- **Async nodes** ([ADR-0002](../../decisions/0002-async-first.md)) registered through the node decorator, which enforces the node contract from principle 3 ([ADR-0003](../../decisions/0003-langgraph-orchestration-and-state.md)).
-- **Injected dependencies.** `build_planning_graph(deps, checkpointer)` receives the GitHub client, index, stores, provider router, and clock. Nodes never import adapters or SDKs.
-- **Small state.** State holds ids and hashes; large payloads (raw issue, context snapshot) live in the blob store.
-- **Statuses, not exceptions,** for expected conditions.
-- **`thread_id = run_id`.**
+Async nodes, the node decorator, injected dependencies, small state, statuses instead of exceptions, and `thread_id = run_id` are defined once in the [primer](../../explanation/langgraph-primer.md), Section 6, and [ADR-0003](../../decisions/0003-langgraph-orchestration-and-state.md). The Planning graph is built by `build_planning_graph(deps, checkpointer)`.
 
 ### LLM roles and tiers
 
-Nodes ask for a **role**; config resolves roles to tiers, and tiers to `(adapter, model)` pairs ([Providers](../../explanation/providers.md), Section 4). This keeps model choices out of the workflow.
-
-| Role        | Used by            | Default tier                           | Notes                                                      |
-| ----------- | ------------------ | -------------------------------------- | ---------------------------------------------------------- |
-| `planner`   | Node 15            | large                                  | Structured output; read-only tool budget                   |
-| `query_gen` | Node 11 (optional) | small                                  | Cached by input hash                                       |
-| `verdict`   | Node 13 (optional) | small                                  | Off by default until evals justify it                      |
-| `reviewer`  | Node 19 (optional) | medium, or an explicit different model | Config warns if it resolves to the same model as `planner` |
-
-`executor_tier` in a task (small, medium, large) uses the same tier names, and the escalation ladder is an ordered list of tiers.
+Nodes ask for a role; config resolves it to a tier and then to an adapter and model. The roles, their default tiers, and the escalation ladder are defined once in [Providers](../../explanation/providers.md), Section 4. The registry's _LLM role_ column (Section 4.0) shows which node uses which role.
 
 ### Parallel fan-out and join
 
@@ -833,14 +838,20 @@ class State(TypedDict):
     issue_ref: str                                              # blob hash of raw issue
     issue: NormalizedIssue
     refs: list[Reference]
-    retriever_results: Annotated[list[RetrieverResult], operator.add]   # reducer merges parallel writes
+    retriever_refs: Annotated[list[RetrieverRef], operator.add]   # reducer merges parallel writes
     warnings: Annotated[list[str], operator.add]
 
 @node(id="code_retriever", kind="deterministic")
 async def code_retriever(state: State, deps: Deps) -> dict:
-    result = await deps.retrieval.code(state["refs"], state["issue"])   # returns RetrieverResult
-    return {"retriever_results": [result],
+    result = await deps.retrieval.code(state["refs"], state["issue"])   # full RetrieverResult
+    ref = await deps.blobs.put_result(result)                     # items go to the blob store, not to state
+    return {"retriever_refs": [ref],
             "warnings": result.warnings}                          # status is data, not an exception
+
+# after preflight, issue handling and index build run in parallel; node 5 waits for both
+g.add_edge("preflight", "fetch_issue")
+g.add_edge("preflight", "ensure_index")
+g.add_edge(["extract_references", "ensure_index"], "validate_references")
 
 g.add_edge("validate_references", "code_retriever")
 g.add_edge("validate_references", "linked_prs")
@@ -857,7 +868,7 @@ g.add_edge(
 )
 ```
 
-Code hits from `code_retriever` reach the packer through the same `retriever_results` key, so the packer never depends on a separate list. Use `Send` only when the number of branches is dynamic (for example, one lookup per extracted reference). Each retriever lives in its own module (or subgraph if it has its own multi-step flow) so it can be tested alone.
+Code hits from `code_retriever` reach the packer through the same `retriever_refs` key (stage 2 nodes load the code result from its blob), so the packer never depends on a separate list. Use `Send` only when the number of branches is dynamic (for example, one lookup per extracted reference). Each retriever lives in its own module (or subgraph if it has its own multi-step flow) so it can be tested alone.
 
 ### Human-in-the-loop: prepare, review, apply
 
@@ -881,7 +892,7 @@ Use `add_conditional_edges` with small pure routing functions (`route_sufficient
 
 ### Budgets and pauses
 
-A per-run or per-node budget breach is not a silent stop: it raises a pause with reason `budget`, and the human chooses to raise the cap, continue, or abort. Pause reasons for this workflow are `clarify` (14), `review` (21), `validation_failed` (18 after retries), and `budget` (any node). See the [Interaction model](../../explanation/interaction-model.md), Section 4.
+A budget breach pauses the run with reason `budget`; it is never a silent stop. Pause reasons, their source nodes, payloads, and valid responses are defined once in the [Interaction model](../../explanation/interaction-model.md), Section 4.
 
 ### Testing
 
@@ -918,22 +929,7 @@ A per-run or per-node budget breach is not a silent stop: it raises a pause with
 
 ## 9. Evaluation and metrics
 
-**Primary eval, context recall (no LLM required):**
-Take historical issues that have a merged PR. Run nodes 1–12 as of the PR's base commit. Measure what fraction of the files (and, ideally, symbols) the real PR touched appeared in the packed context, overall and by tier. Use this to tune retrievers, tiers, and budgets, and to decide whether embeddings are worth adding.
-
-**Secondary metrics:**
-
-- Context precision (share of packed items the plan actually cites)
-- Validator first-pass rate and repair iterations per plan
-- Gap rounds per plan; how often `human_question` gaps occur
-- Human edit rate and reject rate at HITL
-- Tokens, cost, and wall-clock per plan, by node
-- GitHub API calls per run, by bucket
-- Secret redactions per run
-- Convention adherence (optional): whether plans (and later, changes) match the repo's observed patterns
-- Downstream (Implementation workflow): first-pass task success per executor, escalation rate, batch conflict rate
-
-**Set up early:** a "golden set" of 20–50 historical issues, stored with their PR file lists, rerun on every retriever change. It runs as `cog eval run`, replaying recorded GitHub responses and, where LLM steps are involved, the record/replay layer, so evals are repeatable and do not re-spend tokens. Details: [Testing and evaluation](../../explanation/testing-and-evaluation.md).
+The primary evaluation (context recall against historical merged PRs), the secondary metrics, the golden set, and `cog eval run` are defined once in [Testing and evaluation](../../explanation/testing-and-evaluation.md), Sections 9 and 10. The measurement principle stays here: the benefits of the deterministic pipeline (reproducibility, cost, debuggability) are measured, not assumed.
 
 ---
 

@@ -1,7 +1,7 @@
 # Indexing
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06
-**Used by:** Planning nodes 5, 6, 9, 10, 11, 16b, 18 · **Decision:** [ADR-0017](../decisions/0017-index-design.md)
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
+**Used by:** Planning nodes 1b (builds it), 5, 6, 9, 10, 11, 16b, 18 · **Decision:** [ADR-0017](../decisions/0017-index-design.md)
 
 Facts about third-party packages were checked on 2026-10-06. Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
 
@@ -61,6 +61,7 @@ A language server or an embedding table can later be added behind the same inter
 
 - **Keyed by repo and commit.** One index per `(repo, base_sha)`, stored at `indexes/<repo>/<base_sha>/` in the data directory.
 - **Reads come from git objects,** not a working tree: `git ls-tree` for the file list and `git cat-file --batch` for contents. Nothing depends on what is checked out, and CRLF conversion can never alter a span or a hash.
+- **Who builds it.** Planning node 1b (`ensure_index`) builds or reuses the index as an explicit step with progress events and a time budget. `cog index build` runs the same build ahead of time. No other node builds an index.
 - **Atomic publish.** A build writes to a temporary database and renames it into place. A per-repo lock stops two runs from building the same commit twice; the second waits and shares the result.
 - **SQLite** holds files, chunks, symbols, references, imports, co-change pairs, and the FTS tables. FTS5 availability in Python's bundled SQLite must be confirmed on every platform tier **(verify)**.
 - Index files are a rebuildable cache. `cog gc` prunes them.
@@ -175,7 +176,7 @@ Repo size varies, so the design avoids assumptions:
 - **Limits** (file size, file count, chunk size) are configurable defaults, set from measurements in Phase 3, not guesses here.
 - **Progress and cancellation** are reported through the event store; a cancelled build leaves no published partial index.
 - **Disk:** an index is a fraction of the repo size plus the FTS overhead; measure on a large repo during the spike.
-- **Worst-case fallback:** if a build exceeds its time budget, retrievers fall back to lexical-only results with a warning and a `skipped` status for symbol-based tiers, never a crash.
+- **Worst-case fallback:** if a build exceeds its time budget, node 1b returns `degraded`; retrievers fall back to lexical-only results with a warning and a `skipped` status for symbol-based tiers, never a crash.
 
 ---
 

@@ -1,6 +1,6 @@
 # Testing and Evaluation
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
 Items marked **(verify)** are tracked in the [roadmap's verification log](../roadmap.md#verification-log).
 
 The Planning workflow's first twelve nodes are deterministic, so most of the system is testable **without an LLM and without a network**. This page defines how.
@@ -97,13 +97,14 @@ Whole-graph runs with fakes, in a temporary data directory:
 
 | Scenario                                      | Asserts                                                                          |
 | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Happy path                                    | All 22 nodes run; plan persisted; events recorded; costs `None` or consistent    |
+| Happy path                                    | Every node runs; plan persisted; events recorded; costs `None` or consistent     |
+| Index time budget exceeded                    | `ensure_index` returns `degraded`; run finishes lexical-only, with a warning     |
 | Retriever failure                             | One retriever returns `error`; run completes with a warning                      |
 | Insufficient issue                            | Pause `clarify`; resume with answer; one round only                              |
 | Invalid plans                                 | Repair loop runs up to 3 times, then pauses `validation_failed`                  |
 | Gap resolution                                | Up to 2 rounds; `human_question` gaps carried to review                          |
 | Review decisions                              | Approve, edit (re-derive and re-validate; new version), reject (back to planner) |
-| **Pause and resume across a process restart** | State from the file-based checkpointer survives a new process                    |
+| **Pause and resume across a process restart** | State from the SQLite checkpointer survives a new process                        |
 | Budget breach                                 | Pause `budget`; resume with a raised cap                                         |
 | Cancel                                        | Run stops at the next safe point; no partial plan                                |
 | Interrupt-first                               | Nodes 14 and 21 perform no side effects before `interrupt()`                     |
@@ -176,7 +177,8 @@ Use it to tune retrievers, tiers, and budgets, and to decide whether embeddings 
 
 ## 10. Evaluation: later stages
 
-- **Planner quality.** Metrics that do not need an LLM judge: validator first-pass rate, repair iterations, gap rounds, human edit and reject rates, cost per plan, and traceability coverage. LLM-judged scores are advisory only, since LLM review is the least reliable validator. Use recorded context snapshots so prompt or model changes are compared on **identical inputs**.
+- **Planner quality.** Metrics that do not need an LLM judge: validator first-pass rate, repair iterations, gap rounds, human edit and reject rates, cost per plan, secret redactions per run, and traceability coverage. LLM-judged scores are advisory only, since LLM review is the least reliable validator. Use recorded context snapshots so prompt or model changes are compared on **identical inputs**.
+- **Plan-vs-PR overlap.** On the golden set, run Planning as of each merged PR's base commit and compare the files (and symbols, where available) the plan declares with what the PR changed: precision and recall. It uses the human-written PR as a reference and needs no Implementation workflow. A different valid solution scores low, so treat it as a trend signal to compare versions of the planner, not a pass/fail gate. The same leakage rules as the recall eval apply.
 - **Prompt changes** are treated like code changes: snapshot tests plus an eval run before merge when they could affect recall or plan quality.
 - **Convention adherence** (optional): whether plans, and later changes, match the repo's observed patterns ([ADR-0014](../decisions/0014-repo-convention-precedence.md)).
 - **Implementation:** first-pass task success per runner and tier, escalation rate, batch conflict rate, time and cost. Designed with the Implementation workflow ([outline](../workflows/implementation/outline.md)).

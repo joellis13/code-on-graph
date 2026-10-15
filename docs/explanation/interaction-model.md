@@ -1,6 +1,6 @@
 # Interaction Model
 
-**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-06
+**Type:** Explanation · **Status:** Draft v1 · **Last updated:** 2026-10-13
 
 How people use Code-OG: a command-line tool, no chat window. Commands marked _(planned)_ do not exist yet; this page is the specification they will be built against.
 
@@ -26,7 +26,8 @@ How people use Code-OG: a command-line tool, no chat window. Commands marked _(p
 | `cog runs list` / `cog runs show <run_id>` _(planned)_       | Browse runs, statuses, costs, and events                                                |
 | `cog cancel <run_id>` _(planned)_                            | Stop a run at the next safe point                                                       |
 | `cog plan export <plan_id>` _(planned)_                      | Write a plan into a target repo (`.cog/plans/`), optionally as a commit or PR           |
-| `cog repo add <url-or-path>` / `cog repo list` _(planned)_   | Manage managed clones                                                                   |
+| `cog repo add <url-or-path>` / `cog repo list` _(planned)_   | Manage managed clones. `add` clones and runs the bounded first issue/PR mirror sync     |
+| `cog repo sync <repo>` _(planned)_                           | Fetch the clone and re-run the bounded mirror sync, with progress                       |
 | `cog index build <repo>` / `cog index query ...` _(planned)_ | Build and debug the index by hand                                                       |
 | `cog config show [--explain]` _(planned)_                    | Show resolved config and which layer set each value                                     |
 | `cog doctor` _(planned)_                                     | Check environment and credentials (below)                                               |

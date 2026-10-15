@@ -10,6 +10,7 @@ The first workflow, **Planning**, takes a GitHub issue and produces a validated,
 
 ## Principles in brief
 
+- Owns the loop: cog is a harness built and controlled by its owner, with its own prompts, tools, and verification. It does not wrap Claude Code, Copilot, or similar products, whose prompts would nest inside cog's and sometimes conflict with them. Those products stay optional runners and baselines ([Architecture, Section 1](docs/explanation/architecture.md)).
 - Deterministic where checkable; LLM only where judgment is needed; LLM outputs are proposals, verified by code.
 - Standalone: installed once, works on managed clones, no footprint in your repos unless you export.
 - Local-first: all state, logs, and plans live in a local data directory.

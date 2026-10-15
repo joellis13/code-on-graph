@@ -22,6 +22,9 @@
         <mxCell id="preflight" parent="1" vertex="1" value="&lt;b&gt;1. preflight&lt;/b&gt;&lt;br&gt;repo · auth · API budget (per bucket) · tiers and capabilities · egress policy · issue exists? · is it a PR? · fetch managed clone → base_sha" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
           <mxGeometry x="370" y="100" width="260" height="76" as="geometry" />
         </mxCell>
+        <mxCell id="ensureindex" parent="1" vertex="1" value="&lt;b&gt;1b. ensure_index&lt;/b&gt;&lt;br&gt;runs in parallel with 2–4 · build or reuse the index for base_sha (parse cache, per-repo lock) · progress events · time budget → ok | degraded (lexical-only fallback)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+          <mxGeometry x="690" y="190" width="250" height="90" as="geometry" />
+        </mxCell>
         <mxCell id="fetch" parent="1" vertex="1" value="&lt;b&gt;2. fetch_issue&lt;/b&gt;&lt;br&gt;one GraphQL query: body + comments + timeline + labels + sub-issues + linked PRs; attachments → raw blob (cache key: repo/issue/updated_at; API calls budgeted)" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
           <mxGeometry x="370" y="190" width="260" height="82" as="geometry" />
         </mxCell>
@@ -52,7 +55,7 @@
         <mxCell id="docs" parent="1" vertex="1" value="&lt;b&gt;11. docs_retriever&lt;/b&gt;&lt;br&gt;queries: validated identifiers + vocab harvested from code hits (+ optional LLMClient query_gen, small tier: tagged queries only, never paths) → hybrid search" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=9;fillColor=#d5e8d4;strokeColor=#d79b00;dashed=1;dashPattern=6 3;strokeWidth=2;spacing=4;">
           <mxGeometry x="230" y="860" width="160" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="pack" parent="1" vertex="1" value="&lt;b&gt;12. context_packer (join)&lt;/b&gt;&lt;br&gt;merge RetrieverResults · deny-list + secret redaction · dedupe · rank · fit token budget · attach provenance + confidence tier + token cost · build manifest of what exists but was not included · record statuses/warnings" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
+        <mxCell id="pack" parent="1" vertex="1" value="&lt;b&gt;12. context_packer (join)&lt;/b&gt;&lt;br&gt;load + merge stored RetrieverResults (state holds refs) · deny-list + secret redaction · dedupe · rank · fit token budget · attach provenance + confidence tier + token cost · build manifest of what exists but was not included · record statuses/warnings" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;spacing=4;">
           <mxGeometry x="40" y="1020" width="920" height="90" as="geometry" />
         </mxCell>
         <mxCell id="suff" parent="1" vertex="1" value="&lt;b&gt;13. sufficient?&lt;/b&gt;&lt;br&gt;deterministic checks first, optional LLM verdict" style="rhombus;whiteSpace=wrap;html=1;fontSize=9;fillColor=#fff2cc;strokeColor=#d6b656;spacing=4;">
@@ -98,6 +101,12 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="c16" parent="1" edge="1" source="preflight" target="fetch" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c64" parent="1" edge="1" source="preflight" target="ensureindex" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c65" parent="1" edge="1" source="ensureindex" target="validate" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="c17" parent="1" edge="1" source="fetch" target="normalize" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;fontSize=10;">

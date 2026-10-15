@@ -1,6 +1,6 @@
 # Glossary
 
-**Type:** Reference · **Status:** Draft v1 · **Last updated:** 2026-10-08
+**Type:** Reference · **Status:** Draft v1 · **Last updated:** 2026-10-13
 
 The shared glossary for all Code-OG documents. The first group of sections was moved here from the Planning workflow reference (v2.1) without changes of meaning; the sections starting at **Platform and runtime** are new. Where a term is tied to a Planning node, the node is noted in the Planning reference.
 
@@ -286,7 +286,9 @@ The shared glossary for all Code-OG documents. The first group of sections was m
 
 ## Planning workflow additions (v3)
 
-**`RetrieverResult`.** The shared return shape of every retriever: a status (`ok`, `empty`, `skipped`, `error`), a list of context items, and diagnostics. Parallel results merge through one reducer key.
+**`RetrieverResult`.** The shared return shape of every retriever: a status (`ok`, `empty`, `skipped`, `error`), a list of context items, and diagnostics. It is stored in the blob store, not in graph state.
+
+**`RetrieverRef`.** The small record graph state keeps for one stored `RetrieverResult`: retriever name, status, blob hash, item count, and token count. Parallel retrievers merge through one reducer key of these refs.
 
 **Role (LLM role).** The name a workflow uses to request a model (`planner`, `query_gen`, `verdict`, `reviewer`). Config resolves a role to a tier and the tier to an adapter and model.
 
